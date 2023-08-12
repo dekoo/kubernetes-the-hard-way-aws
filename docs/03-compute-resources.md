@@ -1,8 +1,9 @@
 # Provisioning Compute Resources
 
-Kubernetes requires a set of machines to host the Kubernetes control plane and the worker nodes where containers are ultimately run. In this lab you will provision the compute resources required for running a secure and highly available Kubernetes cluster across a single [compute zone](https://cloud.google.com/compute/docs/regions-zones/regions-zones).
+Kubernetes requires a set of machines to host the Kubernetes control plane and the worker nodes where containers are ultimately run. In this lab you will provision the compute resources required for running a secure and highly available Kubernetes cluster within single [region](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html).
 
 > Ensure a default compute zone and region have been set as described in the [Prerequisites](01-prerequisites.md#set-a-default-compute-region-and-zone) lab.
+> Some of the commands posted on this page are using AWS identifiers generated as a result of the preceding commands, hence pay attention on these and replace identifiers where necessary with your ones
 
 ## Networking
 
@@ -12,216 +13,185 @@ The Kubernetes [networking model](https://kubernetes.io/docs/concepts/cluster-ad
 
 ### Virtual Private Cloud Network
 
-In this section a dedicated [Virtual Private Cloud](https://cloud.google.com/compute/docs/networks-and-firewalls#networks) (VPC) network will be setup to host the Kubernetes cluster.
+In this section a dedicated [Virtual Private Cloud](https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html) (VPC) network will be setup to host the Kubernetes cluster.
 
 Create the `kubernetes-the-hard-way` custom VPC network:
 
 ```
-gcloud compute networks create kubernetes-the-hard-way --subnet-mode custom
+aws ec2 create-vpc --region us-east-1 --cidr-block 10.240.0.0/24 --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name,Value=kubernetes-the-hard-way},{Key=Project,Value=kubernetes-the-hard-way}]' --query Vpc.VpcId --output text
 ```
 
-A [subnet](https://cloud.google.com/compute/docs/vpc/#vpc_networks_and_subnets) must be provisioned with an IP address range large enough to assign a private IP address to each node in the Kubernetes cluster.
+Three [subnets](https://docs.aws.amazon.com/vpc/latest/userguide/configure-subnets.html) must be provisioned in each of three availability zones, with an IP address ranges large enough to assign a private IP address to each node in the Kubernetes cluster.
 
 Create the `kubernetes` subnet in the `kubernetes-the-hard-way` VPC network:
 
 ```
-gcloud compute networks subnets create kubernetes \
-  --network kubernetes-the-hard-way \
-  --range 10.240.0.0/24
+aws ec2 create-subnet --availability-zone us-east-1a --vpc-id vpc-0ae4a5ac3edf51d2d --cidr-block 10.240.0.0/26 --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=kubernetes-1a},{Key=Project,Value=kubernetes-the-hard-way}]' --query Subnet.SubnetId --output text
+```
+```
+aws ec2 create-subnet --availability-zone us-east-1b --vpc-id vpc-0ae4a5ac3edf51d2d --cidr-block 10.240.0.64/26 --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=kubernetes-1b},{Key=Project,Value=kubernetes-the-hard-way}]' --query Subnet.SubnetId --output text
+```
+```	
+aws ec2 create-subnet --availability-zone us-east-1c --vpc-id vpc-0ae4a5ac3edf51d2d --cidr-block 10.240.0.128/26 --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=kubernetes-1c},{Key=Project,Value=kubernetes-the-hard-way}]' --query Subnet.SubnetId --output text
 ```
 
 > The `10.240.0.0/24` IP address range can host up to 254 compute instances.
 
 ### Firewall Rules
 
-Create a firewall rule that allows internal communication across all protocols:
+Network ACL are created automatically together with VPC, therefore first we shell find the one associated with ours by listing them all and searching by VPC ID:
 
 ```
-gcloud compute firewall-rules create kubernetes-the-hard-way-allow-internal \
-  --allow tcp,udp,icmp \
-  --network kubernetes-the-hard-way \
-  --source-ranges 10.240.0.0/24,10.200.0.0/16
+aws ec2 describe-network-acls --output text | grep vpc-0ae4a5ac3edf51d2d
 ```
 
-Create a firewall rule that allows external SSH, ICMP, and HTTPS:
+Update tags on the NACL that was found on the previous step:
 
 ```
-gcloud compute firewall-rules create kubernetes-the-hard-way-allow-external \
-  --allow tcp:22,tcp:6443,icmp \
-  --network kubernetes-the-hard-way \
-  --source-ranges 0.0.0.0/0
+aws ec2 create-tags --resources acl-0edf6f4c8be481a2f --tags Key=Name,Value=kubernetes-the-hard-way-nacl
+```
+```
+aws ec2 create-tags --resources acl-0edf6f4c8be481a2f --tags Key=Project,Value=kubernetes-the-hard-way
 ```
 
-> An [external load balancer](https://cloud.google.com/compute/docs/load-balancing/network/) will be used to expose the Kubernetes API Servers to remote clients.
-
-List the firewall rules in the `kubernetes-the-hard-way` VPC network:
+Delete default inbound rule that allows all traffic:
 
 ```
-gcloud compute firewall-rules list --filter="network:kubernetes-the-hard-way"
+aws ec2 delete-network-acl-entry --network-acl-id acl-0edf6f4c8be481a2f --ingress --rule-number 100
 ```
 
-> output
+Add rules that allow SSH, ICMP and HTTPS inbound traffic:
 
 ```
-NAME                                    NETWORK                  DIRECTION  PRIORITY  ALLOW                 DENY  DISABLED
-kubernetes-the-hard-way-allow-external  kubernetes-the-hard-way  INGRESS    1000      tcp:22,tcp:6443,icmp        False
-kubernetes-the-hard-way-allow-internal  kubernetes-the-hard-way  INGRESS    1000      tcp,udp,icmp                Fals
+aws ec2 create-network-acl-entry --ingress --network-acl-id acl-0edf6f4c8be481a2f --rule-action allow --rule-number 100 --cidr-block 0.0.0.0/0 --protocol 6 --port-range 'From=22,To=22'
 ```
+```
+aws ec2 create-network-acl-entry --ingress --network-acl-id acl-0edf6f4c8be481a2f --rule-action allow --rule-number 200 --cidr-block 0.0.0.0/0 --protocol 6 --port-range 'From=6443,To=6443'
+```
+```
+aws ec2 create-network-acl-entry --ingress --network-acl-id acl-0edf6f4c8be481a2f --rule-action allow --rule-number 300 --cidr-block 0.0.0.0/0 --protocol 1 --icmp-type-code 'Code=-1,Type=-1'
+```
+
+> An [elastic load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) will be used to expose the Kubernetes API Servers to remote clients.
 
 ### Kubernetes Public IP Address
 
 Allocate a static IP address that will be attached to the external load balancer fronting the Kubernetes API Servers:
 
 ```
-gcloud compute addresses create kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region)
+aws ec2 allocate-address --region=us-east-1 --tag-specifications 'ResourceType=elastic-ip,Tags=[{Key=Name,Value=kubernetes-the-hard-way-ip},{Key=Project,Value=kubernetes-the-hard-way}]'
 ```
 
-Verify the `kubernetes-the-hard-way` static IP address was created in your default compute region:
+### Internet Gateway
+In order to allow access via SSH we need to create Internet Gateway and attached it to our VPC:
 
 ```
-gcloud compute addresses list --filter="name=('kubernetes-the-hard-way')"
+aws ec2 create-internet-gateway --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=kubernetes-the-hard-way-igw},{Key=Project,Value=kubernetes-the-hard-way}]' --output text
+```
+```
+aws ec2 attach-internet-gateway --internet-gateway-id igw-017fe81aa84a413ed --vpc-id vpc-0ae4a5ac3edf51d2d
 ```
 
-> output
+Then configure routing tables to allow outbound SSH traffic to "0.0.0.0/0" via Internet Gateway.
+First get routing table that was created by default together with VPC on the previous steps:
 
 ```
-NAME                     ADDRESS/RANGE   TYPE      PURPOSE  NETWORK  REGION    SUBNET  STATUS
-kubernetes-the-hard-way  XX.XXX.XXX.XXX  EXTERNAL                    us-west1          RESERVED
+aws ec2 describe-route-tables --filters 'Name=vpc-id,Values=vpc-0ae4a5ac3edf51d2d' --output text
+```
+	
+Now add the rule to the table:
+
+```
+aws ec2 create-route --route-table-id rtb-0958c5f1596132a09 --destination-cidr-block 0.0.0.0/0 --gateway-id igw-017fe81aa84a413ed --output text
 ```
 
 ## Compute Instances
 
-The compute instances in this lab will be provisioned using [Ubuntu Server](https://www.ubuntu.com/server) 20.04, which has good support for the [containerd container runtime](https://github.com/containerd/containerd). Each compute instance will be provisioned with a fixed private IP address to simplify the Kubernetes bootstrapping process.
+The compute instances in this lab will be provisioned using [Amazon Linux](https://aws.amazon.com/amazon-linux-2/?amazon-linux-whats-new.sort-by=item.additionalFields.postDateTime&amazon-linux-whats-new.sort-order=desc), which has good support for the [containerd container runtime](https://github.com/containerd/containerd). Each compute instance will be provisioned with a fixed private IP address within respective subnet to simplify the Kubernetes bootstrapping process.
+
+### Key Pair
+
+Create key pair that will be used later to connect to the instances via SSH:
+
+```
+aws ec2 create-key-pair --key-name kubernetes-the-hard-way-key --output text
+```
+	
+> Save key-material from the output in the `kubernetes-the-hard-way-key.pem` file, i.e. text between below mentioned "BEGIN", "END" sections inclusive those:
+```
+	-----BEGIN RSA PRIVATE KEY-----
+				…
+	-----END RSA PRIVATE KEY-----
+```
+
+Adjust permissions on the file: 
+
+```
+chmod 400 kubernetes-the-hard-way-key.pem
+```
 
 ### Kubernetes Controllers
 
 Create three compute instances which will host the Kubernetes control plane:
 
+> Note that private IP address must belong to the selected subnet which in turn must correspond to one of the availability zones (AZ) in a way to ensure even spread of controllers instances across three AZ.
+
 ```
-for i in 0 1 2; do
-  gcloud compute instances create controller-${i} \
-    --async \
-    --boot-disk-size 200GB \
-    --can-ip-forward \
-    --image-family ubuntu-2004-lts \
-    --image-project ubuntu-os-cloud \
-    --machine-type e2-standard-2 \
-    --private-network-ip 10.240.0.1${i} \
-    --scopes compute-rw,storage-ro,service-management,service-control,logging-write,monitoring \
-    --subnet kubernetes \
-    --tags kubernetes-the-hard-way,controller
-done
+aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 --instance-type t2.micro --key-name kubernetes-the-hard-way-key --subnet-id subnet-014744e367f4ac4f1 --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=controller-1},{Key=Project,Value=kubernetes-the-hard-way}]' --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' --associate-public-ip-address --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' --region us-east-1 --private-ip-address 10.240.0.11 --output text --query "Instances[0].InstanceId"
+```
+```
+aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 --instance-type t2.micro --key-name kubernetes-the-hard-way-key --subnet-id subnet-097e7f895f6ff520c --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=controller-2},{Key=Project,Value=kubernetes-the-hard-way}]' --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' --associate-public-ip-address --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' --region us-east-1 --private-ip-address 10.240.0.75 --output text --query "Instances[0].InstanceId"
+```
+```
+aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 --instance-type t2.micro --key-name kubernetes-the-hard-way-key --subnet-id subnet-0bbf466abf833ad3b --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=controller-3},{Key=Project,Value=kubernetes-the-hard-way}]' --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' --associate-public-ip-address --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' --region us-east-1 --private-ip-address 10.240.0.139 --output text --query "Instances[0].InstanceId"
 ```
 
 ### Kubernetes Workers
 
-Each worker instance requires a pod subnet allocation from the Kubernetes cluster CIDR range. The pod subnet allocation will be used to configure container networking in a later exercise. The `pod-cidr` instance metadata will be used to expose pod subnet allocations to compute instances at runtime.
+Each worker instance requires a pod subnet allocation from the Kubernetes cluster CIDR range. The pod subnet allocation will be used to configure container networking in a later exercise. The `pod_cidr` environment variable set via [user data](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html) will be used to expose pod subnet allocations to compute instances at runtime.
 
 > The Kubernetes cluster CIDR range is defined by the Controller Manager's `--cluster-cidr` flag. In this tutorial the cluster CIDR range will be set to `10.200.0.0/16`, which supports 254 subnets.
 
 Create three compute instances which will host the Kubernetes worker nodes:
 
 ```
-for i in 0 1 2; do
-  gcloud compute instances create worker-${i} \
-    --async \
-    --boot-disk-size 200GB \
-    --can-ip-forward \
-    --image-family ubuntu-2004-lts \
-    --image-project ubuntu-os-cloud \
-    --machine-type e2-standard-2 \
-    --metadata pod-cidr=10.200.${i}.0/24 \
-    --private-network-ip 10.240.0.2${i} \
-    --scopes compute-rw,storage-ro,service-management,service-control,logging-write,monitoring \
-    --subnet kubernetes \
-    --tags kubernetes-the-hard-way,worker
-done
+aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 --instance-type t2.micro --key-name kubernetes-the-hard-way-key --subnet-id subnet-014744e367f4ac4f1 --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=worker-1},{Key=Project,Value=kubernetes-the-hard-way}]' --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' --associate-public-ip-address --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' --region us-east-1 --private-ip-address 10.240.0.21 --output text --query "Instances[0].InstanceId" --user-data "$(printf '#cloud-config\n\nruncmd:\n - echo \"%s\" >> /etc/bashrc' 'export pod_cidr=10.200.1.0/24')"
+```
+```
+aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 --instance-type t2.micro --key-name kubernetes-the-hard-way-key --subnet-id subnet-097e7f895f6ff520c --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=worker-2},{Key=Project,Value=kubernetes-the-hard-way}]' --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' --associate-public-ip-address --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' --region us-east-1 --private-ip-address 10.240.0.85 --output text --query "Instances[0].InstanceId" --user-data "$(printf '#cloud-config\n\nruncmd:\n - echo \"%s\" >> /etc/bashrc' 'export pod_cidr=10.200.2.0/24')"
+```
+```
+aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 --instance-type t2.micro --key-name kubernetes-the-hard-way-key --subnet-id subnet-0bbf466abf833ad3b --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=worker-3},{Key=Project,Value=kubernetes-the-hard-way}]' --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' --associate-public-ip-address --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' --region us-east-1 --private-ip-address 10.240.0.149 --output text --query "Instances[0].InstanceId" --user-data "$(printf '#cloud-config\n\nruncmd:\n - echo \"%s\" >> /etc/bashrc' 'export pod_cidr=10.200.3.0/24')"
 ```
 
 ### Verification
 
-List the compute instances in your default compute zone:
+List the compute instances in your default region:
 
 ```
-gcloud compute instances list --filter="tags.items=kubernetes-the-hard-way"
+aws ec2 describe-instances --output text  --query "Reservations[*].Instances[*].{ID:InstanceId,Name:Tags[?Key=='Name'].Value | [0],PublicIP:PublicIpAddress,Status:State.Name}"
 ```
 
 > output
 
 ```
-NAME          ZONE        MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
-controller-0  us-west1-c  e2-standard-2               10.240.0.10  XX.XX.XX.XXX   RUNNING
-controller-1  us-west1-c  e2-standard-2               10.240.0.11  XX.XXX.XXX.XX  RUNNING
-controller-2  us-west1-c  e2-standard-2               10.240.0.12  XX.XXX.XX.XXX  RUNNING
-worker-0      us-west1-c  e2-standard-2               10.240.0.20  XX.XX.XXX.XXX  RUNNING
-worker-1      us-west1-c  e2-standard-2               10.240.0.21  XX.XX.XX.XXX   RUNNING
-worker-2      us-west1-c  e2-standard-2               10.240.0.22  XX.XXX.XX.XX   RUNNING
-```
-
-## Configuring SSH Access
-
-SSH will be used to configure the controller and worker instances. When connecting to compute instances for the first time SSH keys will be generated for you and stored in the project or instance metadata as described in the [connecting to instances](https://cloud.google.com/compute/docs/instances/connecting-to-instance) documentation.
-
-Test SSH access to the `controller-0` compute instances:
+i-09412985db7c72158		controller-2    54.90.196.141		running
+i-0381ccbd1b41ba93f		worker-2        23.20.192.99		running
+i-0f9b26279f0a9ce11		worker-1			  44.212.25.155		running
+i-095ad38d5362b6273		controller-1		54.224.51.211		running
+i-05de50d771f987162		worker-3			  3.87.115.200		running
+i-01b852f450b8ff73e		controller-3		3.93.0.159			running
 
 ```
-gcloud compute ssh controller-0
-```
 
-If this is your first time connecting to a compute instance SSH keys will be generated for you. Enter a passphrase at the prompt to continue:
+## SSH Access
 
-```
-WARNING: The public SSH key file for gcloud does not exist.
-WARNING: The private SSH key file for gcloud does not exist.
-WARNING: You do not have an SSH key for gcloud.
-WARNING: SSH keygen will be executed to generate a key.
-Generating public/private rsa key pair.
-Enter passphrase (empty for no passphrase):
-Enter same passphrase again:
-```
+SSH will be used to configure the controller and worker instances. 
 
-At this point the generated SSH keys will be uploaded and stored in your project:
+Test SSH access to the `worker-2` compute instances:
 
 ```
-Your identification has been saved in /home/$USER/.ssh/google_compute_engine.
-Your public key has been saved in /home/$USER/.ssh/google_compute_engine.pub.
-The key fingerprint is:
-SHA256:nz1i8jHmgQuGt+WscqP5SeIaSy5wyIJeL71MuV+QruE $USER@$HOSTNAME
-The key's randomart image is:
-+---[RSA 2048]----+
-|                 |
-|                 |
-|                 |
-|        .        |
-|o.     oS        |
-|=... .o .o o     |
-|+.+ =+=.+.X o    |
-|.+ ==O*B.B = .   |
-| .+.=EB++ o      |
-+----[SHA256]-----+
-Updating project ssh metadata...-Updated [https://www.googleapis.com/compute/v1/projects/$PROJECT_ID].
-Updating project ssh metadata...done.
-Waiting for SSH key to propagate.
-```
-
-After the SSH keys have been updated you'll be logged into the `controller-0` instance:
-
-```
-Welcome to Ubuntu 20.04.2 LTS (GNU/Linux 5.4.0-1042-gcp x86_64)
-...
-```
-
-Type `exit` at the prompt to exit the `controller-0` compute instance:
-
-```
-$USER@controller-0:~$ exit
-```
-> output
-
-```
-logout
-Connection to XX.XX.XX.XXX closed
+ssh -i "kubernetes-the-hard-way-key.pem" ec2-user@23.20.192.99
 ```
 
 Next: [Provisioning a CA and Generating TLS Certificates](04-certificate-authority.md)
