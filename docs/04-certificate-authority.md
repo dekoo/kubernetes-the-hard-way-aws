@@ -301,9 +301,10 @@ Generate the Kubernetes API Server certificate and private key:
 ```
 {
 
-KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region) \
-  --format 'value(address)')
+KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-addresses \
+  --filters "Name=tag:Name,Values=kubernetes-the-hard-way-ip" \
+  --query "Addresses[*].{StaticIp:PublicIp}" \
+  --output text)
 
 KUBERNETES_HOSTNAMES=kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.svc.cluster.local
 
@@ -330,7 +331,7 @@ cfssl gencert \
   -ca=ca.pem \
   -ca-key=ca-key.pem \
   -config=ca-config.json \
-  -hostname=10.32.0.1,10.240.0.10,10.240.0.11,10.240.0.12,${KUBERNETES_PUBLIC_ADDRESS},127.0.0.1,${KUBERNETES_HOSTNAMES} \
+  -hostname=10.32.0.1,10.240.0.11,10.240.0.75,10.240.0.139,${KUBERNETES_PUBLIC_ADDRESS},127.0.0.1,${KUBERNETES_HOSTNAMES} \
   -profile=kubernetes \
   kubernetes-csr.json | cfssljson -bare kubernetes
 
@@ -397,17 +398,22 @@ service-account.pem
 Copy the appropriate certificates and private keys to each worker instance:
 
 ```
-for instance in worker-0 worker-1 worker-2; do
-  gcloud compute scp ca.pem ${instance}-key.pem ${instance}.pem ${instance}:~/
+for instance in worker-1 worker-2 worker-3; do
+  scp -i "kubernetes-the-hard-way-key.pem" ca.pem ${instance}-key.pem ${instance}.pem \
+    ec2-user@$(aws ec2 describe-instances --output text \
+      --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}"):~/
 done
 ```
 
 Copy the appropriate certificates and private keys to each controller instance:
 
 ```
-for instance in controller-0 controller-1 controller-2; do
-  gcloud compute scp ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem \
-    service-account-key.pem service-account.pem ${instance}:~/
+for instance in controller-1 controller-2 controller-3; do
+  scp -i "kubernetes-the-hard-way-key.pem" ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem \
+    ec2-user@$(aws ec2 describe-instances --output text \
+      --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}"):~/
 done
 ```
 
