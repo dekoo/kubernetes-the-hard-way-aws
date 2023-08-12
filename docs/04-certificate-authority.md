@@ -134,11 +134,11 @@ EOF
 
 EXTERNAL_IP=$(aws ec2 describe-instances --output text \
   --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
-  --filters 'Name=instance-state-name,Values=running' 'Name=tag:Name,Values=${instance}')
+  --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}")
 
 INTERNAL_IP=$(aws ec2 describe-instances --output text \
   --query "Reservations[*].Instances[*].{PrivateIP:PrivateIpAddress}" \
-  --filters 'Name=instance-state-name,Values=running' 'Name=tag:Name,Values=${instance}')
+  --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}")
 
 cfssl gencert \
   -ca=ca.pem \
