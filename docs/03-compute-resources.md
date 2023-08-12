@@ -175,13 +175,12 @@ aws ec2 describe-instances --output text  --query "Reservations[*].Instances[*].
 > output
 
 ```
-i-09412985db7c72158		controller-2    54.90.196.141		running
-i-0381ccbd1b41ba93f		worker-2        23.20.192.99		running
-i-0f9b26279f0a9ce11		worker-1			  44.212.25.155		running
+i-09412985db7c72158		controller-2		54.90.196.141		running
+i-0381ccbd1b41ba93f		worker-2			23.20.192.99		running
+i-0f9b26279f0a9ce11		worker-1			44.212.25.155		running
 i-095ad38d5362b6273		controller-1		54.224.51.211		running
-i-05de50d771f987162		worker-3			  3.87.115.200		running
+i-05de50d771f987162		worker-3			3.87.115.200		running
 i-01b852f450b8ff73e		controller-3		3.93.0.159			running
-
 ```
 
 ## SSH Access
