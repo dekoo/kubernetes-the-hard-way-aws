@@ -112,7 +112,7 @@ Kubernetes uses a [special-purpose authorization mode](https://kubernetes.io/doc
 Generate a certificate and private key for each Kubernetes worker node:
 
 ```
-for instance in worker-0 worker-1 worker-2; do
+for instance in worker-1 worker-2 worker-3; do
 cat > ${instance}-csr.json <<EOF
 {
   "CN": "system:node:${instance}",
@@ -132,11 +132,13 @@ cat > ${instance}-csr.json <<EOF
 }
 EOF
 
-EXTERNAL_IP=$(gcloud compute instances describe ${instance} \
-  --format 'value(networkInterfaces[0].accessConfigs[0].natIP)')
+EXTERNAL_IP=$(aws ec2 describe-instances --output text \
+  --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
+  --filters 'Name=instance-state-name,Values=running' 'Name=tag:Name,Values=${instance}')
 
-INTERNAL_IP=$(gcloud compute instances describe ${instance} \
-  --format 'value(networkInterfaces[0].networkIP)')
+INTERNAL_IP=$(aws ec2 describe-instances --output text \
+  --query "Reservations[*].Instances[*].{PrivateIP:PrivateIpAddress}" \
+  --filters 'Name=instance-state-name,Values=running' 'Name=tag:Name,Values=${instance}')
 
 cfssl gencert \
   -ca=ca.pem \
