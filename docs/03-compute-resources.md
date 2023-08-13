@@ -41,63 +41,7 @@ done
 
 ### Firewall Rules
 
-Default Network ACL is created automatically together with VPC, lets set the tags on it:
-
-```
-aws ec2 create-tags \
-  --resources $(aws ec2 describe-network-acls --query "NetworkAcls[*].NetworkAclId" \
-    --filters "Name=vpc-id,Values=$(aws ec2 describe-vpcs \
-      --filters "Name=tag:Name,Values=kubernetes-the-hard-way-vpc" \
-      --query "Vpcs[*].VpcId" --output text)" --output text) \
-  --tags 'Key=Name,Value=kubernetes-the-hard-way-nacl' 'Key=Project,Value=kubernetes-the-hard-way'
-```
-
-Delete default inbound rule that allows all traffic:
-
-```
-aws ec2 delete-network-acl-entry --network-acl-id $(aws ec2 describe-network-acls \
-    --query "NetworkAcls[*].NetworkAclId" \
-    --filters "Name=tag:Name,Values=kubernetes-the-hard-way-nacl" --output text) \
-  --ingress --rule-number 100
-```
-
-Add rules that allow SSH, ICMP and HTTPS inbound traffic:
-
-```
-aws ec2 create-network-acl-entry --ingress  \
-  --network-acl-id $(aws ec2 describe-network-acls \
-    --query "NetworkAcls[*].NetworkAclId" \
-    --filters "Name=tag:Name,Values=kubernetes-the-hard-way-nacl" --output text)  \
-  --rule-action allow  \
-  --rule-number 100  \
-  --cidr-block 0.0.0.0/0  \
-  --protocol 6  \
-  --port-range 'From=22,To=22'
-```
-```
-aws ec2 create-network-acl-entry --ingress  \
-  --network-acl-id $(aws ec2 describe-network-acls \
-    --query "NetworkAcls[*].NetworkAclId" \
-    --filters "Name=tag:Name,Values=kubernetes-the-hard-way-nacl" --output text)  \
-  --rule-action allow  \
-  --rule-number 200  \
-  --cidr-block 0.0.0.0/0  \
-  --protocol 6  \
-  --port-range 'From=6443,To=6443'
-```
-```
-aws ec2 create-network-acl-entry --ingress  \
-  --network-acl-id $(aws ec2 describe-network-acls \
-    --query "NetworkAcls[*].NetworkAclId" \
-    --filters "Name=tag:Name,Values=kubernetes-the-hard-way-nacl" --output text)  \
-  --rule-action allow  \
-  --rule-number 300  \
-  --cidr-block 0.0.0.0/0  \
-  --protocol 1  \
-  --icmp-type-code 'Code=-1,Type=-1'
-```
-
-Update default security group to allow SSH traffic:
+Add rules on default Security Group that would allow SSH, ICMP and HTTPS inbound traffic:
 
 ```
 aws ec2 authorize-security-group-ingress \
@@ -107,10 +51,28 @@ aws ec2 authorize-security-group-ingress \
     --query "SecurityGroups[*].GroupId" --output text) \
   --protocol tcp --port 22 --cidr 0.0.0.0/0 --output text
 ```
+```
+aws ec2 authorize-security-group-ingress \
+  --group-id $(aws ec2 describe-security-groups \
+    --filters "Name=vpc-id,Values=$(aws ec2 describe-vpcs \
+       --filters "Name=tag:Name,Values=kubernetes-the-hard-way-vpc" --query "Vpcs[*].VpcId" --output text)" \
+    --query "SecurityGroups[*].GroupId" --output text) \
+  --protocol tcp --port 6443 --cidr 0.0.0.0/0 --output text
+```
+```
+aws ec2 authorize-security-group-ingress \
+  --group-id $(aws ec2 describe-security-groups \
+    --filters "Name=vpc-id,Values=$(aws ec2 describe-vpcs \
+       --filters "Name=tag:Name,Values=kubernetes-the-hard-way-vpc" --query "Vpcs[*].VpcId" --output text)" \
+    --query "SecurityGroups[*].GroupId" --output text) \
+  --protocol icmp --port -1 --cidr 0.0.0.0/0 --output text
+```
 
-> An [elastic load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) will be used to expose the Kubernetes API Servers to remote clients.
+Network ACLs are by default allow all traffic. 
 
 ### Kubernetes Public IP Address
+
+> An [elastic load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) will be used to expose the Kubernetes API Servers to remote clients.
 
 Allocate a static IP address that will be attached to the external load balancer fronting the Kubernetes API Servers:
 
