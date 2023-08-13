@@ -312,7 +312,7 @@ cfssl gencert \
   -ca=ca.pem \
   -ca-key=ca-key.pem \
   -config=ca-config.json \
-  -hostname=10.32.0.1,10.240.0.11,10.240.0.75,10.240.0.139,${KUBERNETES_PUBLIC_ADDRESS},127.0.0.1,${KUBERNETES_HOSTNAMES} \
+  -hostname=10.32.0.1,10.240.0.11,10.240.1.11,10.240.2.11,${KUBERNETES_PUBLIC_ADDRESS},127.0.0.1,${KUBERNETES_HOSTNAMES} \
   -profile=kubernetes \
   kubernetes-csr.json | cfssljson -bare kubernetes
 
