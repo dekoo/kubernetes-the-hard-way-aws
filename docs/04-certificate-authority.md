@@ -112,7 +112,7 @@ Kubernetes uses a [special-purpose authorization mode](https://kubernetes.io/doc
 Generate a certificate and private key for each Kubernetes worker node:
 
 ```
-for instance in worker-1 worker-2 worker-3; do
+for instance in worker-0 worker-1 worker-2; do
 cat > ${instance}-csr.json <<EOF
 {
   "CN": "system:node:${instance}",
@@ -398,7 +398,7 @@ service-account.pem
 Copy the appropriate certificates and private keys to each worker instance:
 
 ```
-for instance in worker-1 worker-2 worker-3; do
+for instance in worker-0 worker-1 worker-2; do
   scp -i "kubernetes-the-hard-way-key.pem" ca.pem ${instance}-key.pem ${instance}.pem \
     ec2-user@$(aws ec2 describe-instances --output text \
       --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
@@ -409,7 +409,7 @@ done
 Copy the appropriate certificates and private keys to each controller instance:
 
 ```
-for instance in controller-1 controller-2 controller-3; do
+for instance in controller-0 controller-1 controller-2; do
   scp -i "kubernetes-the-hard-way-key.pem" ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem \
     ec2-user@$(aws ec2 describe-instances --output text \
       --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
