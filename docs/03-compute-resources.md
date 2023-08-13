@@ -97,6 +97,17 @@ aws ec2 create-network-acl-entry --ingress  \
   --icmp-type-code 'Code=-1,Type=-1'
 ```
 
+Update default security group to allow SSH traffic:
+
+```
+aws ec2 authorize-security-group-ingress \
+  --group-id $(aws ec2 describe-security-groups \
+    --filters "Name=vpc-id,Values=$(aws ec2 describe-vpcs \
+       --filters "Name=tag:Name,Values=kubernetes-the-hard-way-vpc" --query "Vpcs[*].VpcId" --output text)" \
+    --query "SecurityGroups[*].GroupId" --output text) \
+  --protocol tcp --port 22 --cidr 0.0.0.0/0 --output text
+```
+
 > An [elastic load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) will be used to expose the Kubernetes API Servers to remote clients.
 
 ### Kubernetes Public IP Address
@@ -126,19 +137,7 @@ aws ec2 attach-internet-gateway \
     --query "Vpcs[*].VpcId" --output text)
 ```
 
-Then configure routing tables to allow outbound SSH traffic to "0.0.0.0/0" via Internet Gateway.
-First get routing table that was created by default together with VPC on the previous steps:
-
-```
-aws ec2 describe-route-tables \
-  --filters "Name=vpc-id,Values=$(aws ec2 describe-vpcs \
-    --filters "Name=tag:Name,Values=kubernetes-the-hard-way-vpc" \
-    --query "Vpcs[*].VpcId" --output text)" \
-  --query "RouteTables[*].RouteTableId" \
-  --output text
-```
-	
-Now add the rule to the table:
+Then configure routing tables to allow outbound traffic to "0.0.0.0/0" via Internet Gateway.
 
 ```
 aws ec2 create-route --route-table-id $(aws ec2 describe-route-tables \
@@ -186,42 +185,18 @@ Create three compute instances which will host the Kubernetes control plane:
 > Note that private IP address must belong to the selected subnet which in turn must correspond to one of the availability zones (AZ) in a way to ensure even spread of controllers instances across three AZ.
 
 ```
-aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 \
-	--instance-type t2.micro \
-	--key-name kubernetes-the-hard-way-key \
-	--subnet-id subnet-014744e367f4ac4f1 \
-	--tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=controller-1},{Key=Project,Value=kubernetes-the-hard-way}]' \
-	--instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' \
-	--associate-public-ip-address \
-	--block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' \
-	--region us-east-1 \
-	--private-ip-address 10.240.0.11 \
-	--output text --query "Instances[0].InstanceId"
-```
-```
-aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 \
-	--instance-type t2.micro \
-	--key-name kubernetes-the-hard-way-key \
-	--subnet-id subnet-097e7f895f6ff520c \
-	--tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=controller-2},{Key=Project,Value=kubernetes-the-hard-way}]' \
-	--instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' \
-	--associate-public-ip-address \
-	--block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' \
-	--region us-east-1 \
-	--private-ip-address 10.240.0.75 \
-	--output text --query "Instances[0].InstanceId"
-```
-```
-aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 \
-	--instance-type t2.micro \
-	--key-name kubernetes-the-hard-way-key \
-	--subnet-id subnet-0bbf466abf833ad3b \
-	--tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=controller-3},{Key=Project,Value=kubernetes-the-hard-way}]' \
-	--instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' \
-	--associate-public-ip-address --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' \
-	--region us-east-1 \
-	--private-ip-address 10.240.0.139 \
-	--output text --query "Instances[0].InstanceId"
+for i in 0 1 2; do
+  aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 \
+    --instance-type t2.micro \
+    --key-name kubernetes-the-hard-way-key \
+    --subnet-id $(aws ec2 describe-subnets --filters "Name=tag:Name,Values=kubernetes-subnet-${i}" --query "Subnets[*].SubnetId" --output text) \
+    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=controller-${i}},{Key=Project,Value=kubernetes-the-hard-way}]" \
+    --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' \
+    --associate-public-ip-address \
+    --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' \
+    --private-ip-address 10.240.${i}.11 \
+    --output text --query "Instances[0].InstanceId"
+done
 ```
 
 ### Kubernetes Workers
@@ -233,43 +208,18 @@ Each worker instance requires a pod subnet allocation from the Kubernetes cluste
 Create three compute instances which will host the Kubernetes worker nodes:
 
 ```
-aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 \
-	--instance-type t2.micro \
-	--key-name kubernetes-the-hard-way-key \
-	--subnet-id subnet-014744e367f4ac4f1 \
-	--tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=worker-1},{Key=Project,Value=kubernetes-the-hard-way}]' \
-	--instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' \
-	--associate-public-ip-address --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' \
-	--region us-east-1 \
-	--private-ip-address 10.240.0.21 \
-	--output text --query "Instances[0].InstanceId" \
-	--user-data "$(printf '#cloud-config\n\nruncmd:\n - echo \"%s\" >> /etc/bashrc' 'export pod_cidr=10.200.1.0/24')"
-```
-```
-aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 \
-	--instance-type t2.micro \
-	--key-name kubernetes-the-hard-way-key \
-	--subnet-id subnet-097e7f895f6ff520c \
-	--tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=worker-2},{Key=Project,Value=kubernetes-the-hard-way}]' \
-	--instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' \
-	--associate-public-ip-address --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' \
-	--region us-east-1 --private-ip-address 10.240.0.85 \
-	--output text --query "Instances[0].InstanceId" \
-	--user-data "$(printf '#cloud-config\n\nruncmd:\n - echo \"%s\" >> /etc/bashrc' 'export pod_cidr=10.200.2.0/24')"
-```
-```
-aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 \
-	--instance-type t2.micro \
-	--key-name kubernetes-the-hard-way-key \
-	--subnet-id subnet-0bbf466abf833ad3b \
-	--tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=worker-3},{Key=Project,Value=kubernetes-the-hard-way}]' \
-	--instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' \
-	--associate-public-ip-address \
-	--block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' \
-	--region us-east-1 \
-	--private-ip-address 10.240.0.149 \
-	--output text --query "Instances[0].InstanceId" \
-	--user-data "$(printf '#cloud-config\n\nruncmd:\n - echo \"%s\" >> /etc/bashrc' 'export pod_cidr=10.200.3.0/24')"
+for i in 0 1 2; do
+  aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 \
+    --instance-type t2.micro \
+    --key-name kubernetes-the-hard-way-key \
+    --subnet-id $(aws ec2 describe-subnets --filters "Name=tag:Name,Values=kubernetes-subnet-${i}" --query "Subnets[*].SubnetId" --output text) \
+    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=worker-${i}},{Key=Project,Value=kubernetes-the-hard-way}]" \
+    --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.3,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' \
+    --associate-public-ip-address --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' \
+    --private-ip-address 10.240.${i}.21 \
+    --output text --query "Instances[0].InstanceId" \
+    --user-data "$(printf '#cloud-config\n\nruncmd:\n - echo \"%s\" >> /etc/bashrc \n - export POD_CIDR=10.200.1.0/24' 'export POD_CIDR=10.200.1.0/24')"
+done
 ```
 
 ### Verification
@@ -289,8 +239,8 @@ i-09412985db7c72158		controller-2		54.90.196.141		running
 i-0381ccbd1b41ba93f		worker-2		23.20.192.99		running
 i-0f9b26279f0a9ce11		worker-1		44.212.25.155		running
 i-095ad38d5362b6273		controller-1		54.224.51.211		running
-i-05de50d771f987162		worker-3		3.87.115.200		running
-i-01b852f450b8ff73e		controller-3		3.93.0.159		running
+i-05de50d771f987162		worker-0		3.87.115.200		running
+i-01b852f450b8ff73e		controller-0		3.93.0.159		running
 ```
 
 ## SSH Access
