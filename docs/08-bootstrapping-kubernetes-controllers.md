@@ -69,7 +69,7 @@ INTERNAL_IP=$(TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H \
 
 Create the `kube-apiserver.service` systemd unit file:
 
-> `KUBERNETES_PUBLIC_ADDRESS` was set as environment variable on [Configuring Compute Resources](03-compute-resources.md) step
+> `PUBLIC_API_DNS` was set as environment variable on [Configuring Compute Resources](03-compute-resources.md) step
 
 ```
 cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
@@ -102,7 +102,7 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --runtime-config='api/all=true' \\
   --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
   --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
-  --service-account-issuer=https://${KUBERNETES_PUBLIC_ADDRESS}:6443 \\
+  --service-account-issuer=https://${PUBLIC_API_DNS}:6443 \\
   --service-cluster-ip-range=10.32.0.0/24 \\
   --service-node-port-range=30000-32767 \\
   --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
