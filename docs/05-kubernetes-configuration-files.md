@@ -13,10 +13,8 @@ Each kubeconfig requires a Kubernetes API Server to connect to. To support high 
 Retrieve the `kubernetes-the-hard-way-ip` static IP address:
 
 ```
-KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-addresses \
-  --filters "Name=tag:Name,Values=kubernetes-the-hard-way-ip" \
-  --query "Addresses[*].{StaticIp:PublicIp}" \
-  --output text)
+PUBLIC_API_DNS=$(aws elbv2 describe-load-balancers \
+  --names kubernetes-hard-way-nlb --output text --query LoadBalancers[].DNSName)
 ```
 
 ### The kubelet Kubernetes Configuration File
@@ -32,7 +30,7 @@ for instance in worker-0 worker-1 worker-2; do
   kubectl config set-cluster kubernetes-the-hard-way \
     --certificate-authority=ca.pem \
     --embed-certs=true \
-    --server=https://${KUBERNETES_PUBLIC_ADDRESS}:6443 \
+    --server=https://${PUBLIC_API_DNS}:6443 \
     --kubeconfig=${instance}.kubeconfig
 
   kubectl config set-credentials system:node:${instance} \
@@ -66,7 +64,7 @@ Generate a kubeconfig file for the `kube-proxy` service:
   kubectl config set-cluster kubernetes-the-hard-way \
     --certificate-authority=ca.pem \
     --embed-certs=true \
-    --server=https://${KUBERNETES_PUBLIC_ADDRESS}:6443 \
+    --server=https://${PUBLIC_API_DNS}:6443 \
     --kubeconfig=kube-proxy.kubeconfig
 
   kubectl config set-credentials system:kube-proxy \
