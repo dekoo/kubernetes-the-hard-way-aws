@@ -40,7 +40,8 @@ done
 
 ### Firewall Rules
 
-Add rules on default Security Group that would allow SSH, ICMP and HTTPS inbound traffic:
+Security Groups created by default with VPC allows Inbound traffic only within given VPC. 
+Add rules that would allow SSH, ICMP and HTTPS inbound traffic from outside world:
 
 ```
 aws ec2 authorize-security-group-ingress \
@@ -67,7 +68,7 @@ aws ec2 authorize-security-group-ingress \
   --protocol icmp --port -1 --cidr 0.0.0.0/0 --output text
 ```
 
-Network ACLs are by default allow all traffic. 
+Network ACLs by default allow all traffic. 
 
 ### Kubernetes Public IP Address
 
