@@ -78,11 +78,12 @@ Allocate a static IP address that will be attached to the external load balancer
 
 ```
 aws ec2 allocate-address \
-  --tag-specifications 'ResourceType=elastic-ip,Tags=[{Key=Name,Value=kubernetes-the-hard-way-ip},{Key=Project,Value=kubernetes-the-hard-way}]'
+  --tag-specifications 'ResourceType=elastic-ip,Tags=[{Key=Name,Value=kubernetes-the-hard-way-ip},{Key=Project,Value=kubernetes-the-hard-way}]' \
+  --output text
 ```
 
 ### Internet Gateway
-In order to allow access via SSH we need to create Internet Gateway and attached it to our VPC:
+In order to allow access to our compute resources within VPC from local machine via SSH we need to create Internet Gateway and attach it to our VPC:
 
 ```
 aws ec2 create-internet-gateway \
@@ -119,6 +120,8 @@ aws ec2 create-route --route-table-id $(aws ec2 describe-route-tables \
 
 The compute instances in this lab will be provisioned using [Amazon Linux](https://aws.amazon.com/amazon-linux-2/?amazon-linux-whats-new.sort-by=item.additionalFields.postDateTime&amazon-linux-whats-new.sort-order=desc), which has good support for the [containerd container runtime](https://github.com/containerd/containerd). Each compute instance will be provisioned with a fixed private IP address within respective subnet to simplify the Kubernetes bootstrapping process.
 
+> We will be using [Spot Instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances.html) in this lab to save on the budget
+
 ### Key Pair
 
 Create key pair that will be used later to connect to the instances via SSH:
@@ -128,10 +131,35 @@ aws ec2 create-key-pair --key-name kubernetes-the-hard-way-key --output text
 ```
 	
 > Save key-material from the output in the `kubernetes-the-hard-way-key.pem` file, i.e. text between below mentioned "BEGIN", "END" sections inclusive those:
+
 ```
-	-----BEGIN RSA PRIVATE KEY-----
-				…
-	-----END RSA PRIVATE KEY-----
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAkya1SjZZefmz3N9tY1eCktTCl5Tn9kTFH+0nulFddk1fyLzV
+ePt4QRIWl1BpQThVT6hfxwhNjsyenHhEU0S4CzfzusU5ja/Ee6ha4I4JaUJmUQcs
+1ZDb45gruBK+eh3tseOiIi5E EXAMPLE SKNtUhICkju2/y8tRNW01eKNdHDzzDq
+52khXhJAfRrXu9n+5iqSk0W0 EXAMPLE SFUG86qF3Qq64XF5BUX1MaZgBgbxEys
+AAZQkOYi486aJktbjJvFuhpZ EXAMPLE jLuywX1paD096BZxXhnYTOsjM7Z+UHk
+fji6ouutxsvyfTXikBt2nAD4 EXAMPLE 4JaTwIDAQABAoIBACMC3bWHkuhzofjW
+bCdrxdR7rMT2F+6/VAuRmJc7 EXAMPLE sDTTDxnOlrMNg7fgWTPkeJANnvYcZCX
+COKrAgMhT+tLS7NLc7tcRisR EXAMPLE +AcdEUFirlkNE/H2SsvFv989Laxikhd
+w9CH8SGFziYsTjCnRJrsvAbS EXAMPLE TXZTpRddOQbGmIFytXNx33HkQaKFPW4
+iZH9CdqYVq2ijFqiIk4iMKnn EXAMPLE l6ssWJw83DLu9UFW0IGXnZ0wnPVDDzP
+Kiy8aYis7FQIjq1rHzlZ5nTU EXAMPLE 9dint7f46YoK5LfuDF3mTd1T3CaW+L1
+Tx8tFokCgYEAyQB7rlYAo4ow EXAMPLE 1RIvlUeOAHoTRg+HUzB8uxe18AAvUUp
+GBrhOhmwunz9Y5Ai6a+IZs80 EXAMPLE HeekyZoFRisc1843n8PW7RyGVijAdVC
+X6TGtZjoFxuXBLP117NHau3i EXAMPLE 9Rpqn/OVqy7hh5LyTKf66MCgYEAu2op
+tFB8AUn5c3KYn67E/bgw152a EXAMPLE DTzmbvN6BQ3ja16sPdxYuSC7c5Iwix+
+6hCs7qWY7T7EepMm6fGERhV9 EXAMPLE 4Vj7V4FAsBksiuMP29l7ieHl46acUDX
+6hzogd8M+iii6MgSGJhEyhs0 EXAMPLE cdyQWUCgYEAkHC3cD0/MkZggTqt9F/X
+eu+DYrsZ/xdnztbn8/gvu5ie EXAMPLE 305cp35gNnG4OA4JoPMWkz2O+FMLtqF
+0Ds9ifLkgpx7eGDqJgFakQTn EXAMPLE vBHF0JtLgXWjTuhI8MiRDX0jgDTQuXZ
+vhHXaP100pZIH4Xv4gJuJ08C EXAMPLE NJ73mbUkjLhhF2NZ81zvkXTGG/GDaGW
+16IPJKMwmRuinv+Btoajh8VS EXAMPLE 4zgb0fXznRMtUWGGw60jkvgltNRcPtc
+k/hQGV8/xC8X0A4TeX7W+ZWU EXAMPLE UIP8YXpMkwzWRpVhxqExP/SqlO9mVgb
+QSDfSQKBgQCz4IUROwURKN2X EXAMPLE wF6D1bRIQCE5vT5L8QAMD1yCL93jWwg
+LBuJesSE7YOym3AJ/Hu7gpYePzgF5qCgiP+j48N2HsBVbbltx2cNUJxZBH4zFZge
+62kw1mp8lrEBE78JFQgz4HQDL/8Ox5E3lSTKoMOcabGhloxG6F1IXA==
+-----END RSA PRIVATE KEY-----
 ```
 
 Adjust permissions on the file: 
@@ -180,7 +208,7 @@ for i in 0 1 2; do
     --associate-public-ip-address --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' \
     --private-ip-address 10.240.${i}.21 \
     --output text --query "Instances[0].InstanceId" \
-    --user-data "$(printf '#cloud-config\n\nruncmd:\n - echo \"%s\" >> /etc/bashrc \n - export POD_CIDR=10.200.1.0/24' 'export POD_CIDR=10.200.1.0/24')"
+    --user-data "$(printf '#cloud-config\n\nruncmd:\n - echo \"%s\" >> /etc/bashrc \n - export POD_CIDR=10.200.'${i}'.0/24' 'export POD_CIDR=10.200.'${i}'.0/24')"
 done
 ```
 
