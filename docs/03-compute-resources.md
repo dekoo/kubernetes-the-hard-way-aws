@@ -70,9 +70,44 @@ aws ec2 authorize-security-group-ingress \
 
 Network ACLs by default allow all traffic. 
 
-### Network Load Balancer
+### Internet Gateway
+In order to allow access to our compute resources within VPC from local machine via SSH we need to create Internet Gateway and attach it to our VPC:
+
+```
+aws ec2 create-internet-gateway \
+  --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=kubernetes-the-hard-way-igw},{Key=Project,Value=kubernetes-the-hard-way}]' \
+  --output text
+```
+```
+aws ec2 attach-internet-gateway \
+  --internet-gateway-id $(aws ec2 describe-internet-gateways \
+    --filters "Name=tag:Name,Values=kubernetes-the-hard-way-igw" \
+    --query "InternetGateways[*].InternetGatewayId" --output text) \
+  --vpc-id $(aws ec2 describe-vpcs \
+    --filters "Name=tag:Name,Values=kubernetes-the-hard-way-vpc" \
+    --query "Vpcs[*].VpcId" --output text)
+```
+
+Then configure routing tables to allow outbound traffic to "0.0.0.0/0" via Internet Gateway.
+
+```
+aws ec2 create-route --route-table-id $(aws ec2 describe-route-tables \
+    --filters "Name=vpc-id,Values=$(aws ec2 describe-vpcs \
+      --filters "Name=tag:Name,Values=kubernetes-the-hard-way-vpc" \
+      --query "Vpcs[*].VpcId" --output text)" \
+    --query "RouteTables[*].RouteTableId" \
+    --output text) \
+  --destination-cidr-block 0.0.0.0/0 \
+  --gateway-id $(aws ec2 describe-internet-gateways \
+    --filters "Name=tag:Name,Values=kubernetes-the-hard-way-igw" \
+    --query "InternetGateways[*].InternetGatewayId" --output text) \
+  --output text
+```
+## The Kubernetes Frontend Load Balancer
 
 > An [elastic load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) will be used to expose the Kubernetes API Servers to remote clients.
+
+### Provision a Network Load Balancer
 
 Create empty target group for the port `6443` which is default for the Kubernetes API Server:
 
@@ -116,39 +151,7 @@ aws elbv2 create-listener --load-balancer-arn $(aws elbv2 describe-load-balancer
     --names kubernetes-hard-way-tg --output text --query TargetGroups[].TargetGroupArn) --output text
 ```
 
-### Internet Gateway
-In order to allow access to our compute resources within VPC from local machine via SSH we need to create Internet Gateway and attach it to our VPC:
-
-```
-aws ec2 create-internet-gateway \
-  --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=kubernetes-the-hard-way-igw},{Key=Project,Value=kubernetes-the-hard-way}]' \
-  --output text
-```
-```
-aws ec2 attach-internet-gateway \
-  --internet-gateway-id $(aws ec2 describe-internet-gateways \
-    --filters "Name=tag:Name,Values=kubernetes-the-hard-way-igw" \
-    --query "InternetGateways[*].InternetGatewayId" --output text) \
-  --vpc-id $(aws ec2 describe-vpcs \
-    --filters "Name=tag:Name,Values=kubernetes-the-hard-way-vpc" \
-    --query "Vpcs[*].VpcId" --output text)
-```
-
-Then configure routing tables to allow outbound traffic to "0.0.0.0/0" via Internet Gateway.
-
-```
-aws ec2 create-route --route-table-id $(aws ec2 describe-route-tables \
-    --filters "Name=vpc-id,Values=$(aws ec2 describe-vpcs \
-      --filters "Name=tag:Name,Values=kubernetes-the-hard-way-vpc" \
-      --query "Vpcs[*].VpcId" --output text)" \
-    --query "RouteTables[*].RouteTableId" \
-    --output text) \
-  --destination-cidr-block 0.0.0.0/0 \
-  --gateway-id $(aws ec2 describe-internet-gateways \
-    --filters "Name=tag:Name,Values=kubernetes-the-hard-way-igw" \
-    --query "InternetGateways[*].InternetGatewayId" --output text) \
-  --output text
-```
+> Configuration of the targets within the group be completed in [Bootstrating Kubernetes Controllers](08-bootstrapping-kubernetes-controllers.md) section.
 
 ## Compute Instances
 
