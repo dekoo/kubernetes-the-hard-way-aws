@@ -4,15 +4,22 @@ In this lab you will bootstrap the Kubernetes control plane across three compute
 
 ## Prerequisites
 
-The commands in this lab must be run on each controller instance: `controller-0`, `controller-1`, and `controller-2`. Login to each controller instance using the `gcloud` command. Example:
+The commands in this lab must be run on each controller instance: `controller-0`, `controller-1`, and `controller-2`. Login to each controller instance using the `ssh` command. IP address can be retrieved dynamically using `aws cli`.
+Example:
+
+> Replace value of the Name tag accordingly: `controller-0`, `controller-1`, and `controller-2`
+
+> Execute in the directory where you have you `kubernetes-the-hard-way-key.pem`
 
 ```
-gcloud compute ssh controller-0
+ssh -i "kubernetes-the-hard-way-key.pem" ec2-user@$(aws ec2 describe-instances --output text \
+      --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=controller-0")
 ```
 
 ### Running commands in parallel with tmux
 
-[tmux](https://github.com/tmux/tmux/wiki) can be used to run commands on multiple compute instances at the same time. See the [Running commands in parallel with tmux](01-prerequisites.md#running-commands-in-parallel-with-tmux) section in the Prerequisites lab.
+[tmux](https://github.com/tmux/tmux/wiki) can be used to run commands on multiple compute instances at the same time. 
 
 ## Provision the Kubernetes Control Plane
 
@@ -37,43 +44,32 @@ wget -q --show-progress --https-only --timestamping \
 Install the Kubernetes binaries:
 
 ```
-{
-  chmod +x kube-apiserver kube-controller-manager kube-scheduler kubectl
-  sudo mv kube-apiserver kube-controller-manager kube-scheduler kubectl /usr/local/bin/
-}
+chmod +x kube-apiserver kube-controller-manager kube-scheduler kubectl
+sudo mv kube-apiserver kube-controller-manager kube-scheduler kubectl /usr/local/bin/
+
 ```
 
 ### Configure the Kubernetes API Server
 
 ```
-{
-  sudo mkdir -p /var/lib/kubernetes/
-
-  sudo mv ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem \
+sudo mkdir -p /var/lib/kubernetes/
+sudo mv ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem \
     service-account-key.pem service-account.pem \
     encryption-config.yaml /var/lib/kubernetes/
-}
-```
-
-The instance internal IP address will be used to advertise the API Server to members of the cluster. Retrieve the internal IP address for the current compute instance:
 
 ```
-INTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" \
-  http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip)
-```
+
+The instance internal IP address will be used to serve client requests and communicate with etcd cluster peers. Retrieve the internal IP address for the current compute instance using [AWS Instance Metadata Service](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html):
 
 ```
-REGION=$(curl -s -H "Metadata-Flavor: Google" \
-  http://metadata.google.internal/computeMetadata/v1/project/attributes/google-compute-default-region)
-```
-
-```
-KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region $REGION \
-  --format 'value(address)')
+INTERNAL_IP=$(TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H \
+  "X-aws-ec2-metadata-token-ttl-seconds: 21600"` && curl -s -H "X-aws-ec2-metadata-token: $TOKEN" -v \
+    http://169.254.169.254/latest/meta-data/local-ipv4)
 ```
 
 Create the `kube-apiserver.service` systemd unit file:
+
+> `KUBERNETES_PUBLIC_ADDRESS` was set as environment variable on [Configuring Compute Resources](03-compute-resources.md) step
 
 ```
 cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
@@ -202,58 +198,14 @@ EOF
 ### Start the Controller Services
 
 ```
-{
-  sudo systemctl daemon-reload
-  sudo systemctl enable kube-apiserver kube-controller-manager kube-scheduler
-  sudo systemctl start kube-apiserver kube-controller-manager kube-scheduler
-}
+sudo systemctl daemon-reload
+sudo systemctl enable kube-apiserver kube-controller-manager kube-scheduler
+sudo systemctl start kube-apiserver kube-controller-manager kube-scheduler
+
 ```
 
 > Allow up to 10 seconds for the Kubernetes API Server to fully initialize.
 
-### Enable HTTP Health Checks
-
-A [Google Network Load Balancer](https://cloud.google.com/compute/docs/load-balancing/network) will be used to distribute traffic across the three API servers and allow each API server to terminate TLS connections and validate client certificates. The network load balancer only supports HTTP health checks which means the HTTPS endpoint exposed by the API server cannot be used. As a workaround the nginx webserver can be used to proxy HTTP health checks. In this section nginx will be installed and configured to accept HTTP health checks on port `80` and proxy the connections to the API server on `https://127.0.0.1:6443/healthz`.
-
-> The `/healthz` API server endpoint does not require authentication by default.
-
-Install a basic web server to handle HTTP health checks:
-
-```
-sudo apt-get update
-sudo apt-get install -y nginx
-```
-
-```
-cat > kubernetes.default.svc.cluster.local <<EOF
-server {
-  listen      80;
-  server_name kubernetes.default.svc.cluster.local;
-
-  location /healthz {
-     proxy_pass                    https://127.0.0.1:6443/healthz;
-     proxy_ssl_trusted_certificate /var/lib/kubernetes/ca.pem;
-  }
-}
-EOF
-```
-
-```
-{
-  sudo mv kubernetes.default.svc.cluster.local \
-    /etc/nginx/sites-available/kubernetes.default.svc.cluster.local
-
-  sudo ln -s /etc/nginx/sites-available/kubernetes.default.svc.cluster.local /etc/nginx/sites-enabled/
-}
-```
-
-```
-sudo systemctl restart nginx
-```
-
-```
-sudo systemctl enable nginx
-```
 
 ### Verification
 
@@ -265,10 +217,12 @@ kubectl cluster-info --kubeconfig admin.kubeconfig
 Kubernetes control plane is running at https://127.0.0.1:6443
 ```
 
-Test the nginx HTTP health check proxy:
+A [AWS Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) will be used to distribute traffic across the three API servers and allow each API server to terminate TLS connections and validate client certificates. We will be configuring (health checks)[https://docs.aws.amazon.com/elasticloadbalancing/latest/network/target-group-health-checks.html] later in the lab, it will be using `/healthz` API server endpoint, hence below we verify if it works.
+
+> The `/healthz` API server endpoint does not require authentication by default.
 
 ```
-curl -H "Host: kubernetes.default.svc.cluster.local" -i http://127.0.0.1/healthz
+curl -H "Host: localhost" -i https://127.0.0.1:6443/healthz --cacert /var/lib/kubernetes/ca.pem
 ```
 
 ```
@@ -292,15 +246,17 @@ ok
 
 In this section you will configure RBAC permissions to allow the Kubernetes API Server to access the Kubelet API on each worker node. Access to the Kubelet API is required for retrieving metrics, logs, and executing commands in pods.
 
-> This tutorial sets the Kubelet `--authorization-mode` flag to `Webhook`. Webhook mode uses the [SubjectAccessReview](https://kubernetes.io/docs/admin/authorization/#checking-api-access) API to determine authorization.
+> This tutorial sets the Kubelet `--authorization-mode` flag to `Webhook`. Webhook mode uses the [SubjectAccessReview](https://kubernetes.io/docs/reference/access-authn-authz/webhook/#request-payloads) API to determine authorization.
 
 The commands in this section will effect the entire cluster and only need to be run once from one of the controller nodes.
 
 ```
-gcloud compute ssh controller-0
+ssh -i "kubernetes-the-hard-way-key.pem" ec2-user@$(aws ec2 describe-instances --output text \
+      --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=controller-0")
 ```
 
-Create the `system:kube-apiserver-to-kubelet` [ClusterRole](https://kubernetes.io/docs/admin/authorization/rbac/#role-and-clusterrole) with permissions to access the Kubelet API and perform most common tasks associated with managing pods:
+Create the `system:kube-apiserver-to-kubelet` [ClusterRole](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#role-and-clusterrole) with permissions to access the Kubelet API and perform most common tasks associated with managing pods:
 
 ```
 cat <<EOF | kubectl apply --kubeconfig admin.kubeconfig -f -
@@ -350,7 +306,7 @@ EOF
 
 ## The Kubernetes Frontend Load Balancer
 
-In this section you will provision an external load balancer to front the Kubernetes API Servers. The `kubernetes-the-hard-way` static IP address will be attached to the resulting load balancer.
+In this section you will provision an external load balancer to front the Kubernetes API Servers. The `kubernetes-the-hard-way-ip` static IP address will be attached to the resulting load balancer.
 
 > The compute instances created in this tutorial will not have permission to complete this section. **Run the following commands from the same machine used to create the compute instances**.
 
@@ -360,10 +316,10 @@ In this section you will provision an external load balancer to front the Kubern
 Create the external load balancer network resources:
 
 ```
-{
-  KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-    --region $(gcloud config get-value compute/region) \
-    --format 'value(address)')
+KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-addresses \
+  --filters "Name=tag:Name,Values=kubernetes-the-hard-way-ip" \
+  --query "Addresses[*].{StaticIp:PublicIp}" \
+  --output text)
 
   gcloud compute http-health-checks create kubernetes \
     --description "Kubernetes Health Check" \
@@ -386,14 +342,15 @@ Create the external load balancer network resources:
     --ports 6443 \
     --region $(gcloud config get-value compute/region) \
     --target-pool kubernetes-target-pool
-}
+
+
 ```
 
 ### Verification
 
 > The compute instances created in this tutorial will not have permission to complete this section. **Run the following commands from the same machine used to create the compute instances**.
 
-Retrieve the `kubernetes-the-hard-way` static IP address:
+Retrieve the `kubernetes-the-hard-way-ip` static IP address:
 
 ```
 KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
