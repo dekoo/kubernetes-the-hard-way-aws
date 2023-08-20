@@ -306,43 +306,23 @@ EOF
 
 ## The Kubernetes Frontend Load Balancer
 
-In this section you will provision an external load balancer to front the Kubernetes API Servers. The `kubernetes-the-hard-way-ip` static IP address will be attached to the resulting load balancer.
+In this section you will complete provisioning of an external load balancer to front the Kubernetes API Servers. 
 
 > The compute instances created in this tutorial will not have permission to complete this section. **Run the following commands from the same machine used to create the compute instances**.
 
 
-### Provision a Network Load Balancer
+### Complete configuration of the Target Group
 
-Create the external load balancer network resources:
+Register `controller-0`, `controller-1` and `controller-2` instances as a targets for the `kubernetes-hard-way-tg` group:
 
 ```
-KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-addresses \
-  --filters "Name=tag:Name,Values=kubernetes-the-hard-way-ip" \
-  --query "Addresses[*].{StaticIp:PublicIp}" \
-  --output text)
-
-  gcloud compute http-health-checks create kubernetes \
-    --description "Kubernetes Health Check" \
-    --host "kubernetes.default.svc.cluster.local" \
-    --request-path "/healthz"
-
-  gcloud compute firewall-rules create kubernetes-the-hard-way-allow-health-check \
-    --network kubernetes-the-hard-way \
-    --source-ranges 209.85.152.0/22,209.85.204.0/22,35.191.0.0/16 \
-    --allow tcp
-
-  gcloud compute target-pools create kubernetes-target-pool \
-    --http-health-check kubernetes
-
-  gcloud compute target-pools add-instances kubernetes-target-pool \
-   --instances controller-0,controller-1,controller-2
-
-  gcloud compute forwarding-rules create kubernetes-forwarding-rule \
-    --address ${KUBERNETES_PUBLIC_ADDRESS} \
-    --ports 6443 \
-    --region $(gcloud config get-value compute/region) \
-    --target-pool kubernetes-target-pool
-
+aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups --names kubernetes-hard-way-tg --output text --query TargetGroups[].TargetGroupArn) --targets Id=$(aws ec2 describe-instances --output text \
+	  --query "Reservations[*].Instances[*].{InstanceId:InstanceId}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=controller-0") Id=$(aws ec2 describe-instances --output text \
+	  --query "Reservations[*].Instances[*].{InstanceId:InstanceId}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=controller-1") Id=$(aws ec2 describe-instances --output text \
+	  --query "Reservations[*].Instances[*].{InstanceId:InstanceId}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=controller-2")
 
 ```
 
@@ -350,19 +330,10 @@ KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-addresses \
 
 > The compute instances created in this tutorial will not have permission to complete this section. **Run the following commands from the same machine used to create the compute instances**.
 
-Retrieve the `kubernetes-the-hard-way-ip` static IP address:
-
-```
-KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-addresses \
-  --filters "Name=tag:Name,Values=kubernetes-the-hard-way-ip" \
-  --query "Addresses[*].{StaticIp:PublicIp}" \
-  --output text)
-```
-
 Make a HTTP request for the Kubernetes version info:
 
 ```
-curl --cacert ca.pem https://${KUBERNETES_PUBLIC_ADDRESS}:6443/version
+curl --cacert ca.pem https://$(aws elbv2 describe-load-balancers --names kubernetes-hard-way-nlb --output text --query LoadBalancers[].DNSName):6443/version
 ```
 
 > output
