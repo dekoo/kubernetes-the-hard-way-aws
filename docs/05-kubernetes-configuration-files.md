@@ -204,7 +204,7 @@ done
 Copy the appropriate `kube-controller-manager` and `kube-scheduler` kubeconfig files to each controller instance:
 
 ```
-for instance in controller-0 controller-0 controller-0; do
+for instance in controller-0 controller-1 controller-2; do
   scp -i "kubernetes-the-hard-way-key.pem" admin.kubeconfig kube-controller-manager.kubeconfig kube-scheduler.kubeconfig \
     ec2-user@$(aws ec2 describe-instances --output text \
       --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
