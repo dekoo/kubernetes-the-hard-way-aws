@@ -1,4 +1,4 @@
-# Kubernetes The Hard Way
+# Kubernetes The Hard Way on AWS
 
 This tutorial walks you through setting up Kubernetes the hard way. This guide is not for people looking for a fully automated command to bring up a Kubernetes cluster. If that's you then check out [Amazon Elastic Kubernetes Service](https://aws.amazon.com/eks/), or the [Getting Started Guides](https://kubernetes.io/docs/setup).
 
