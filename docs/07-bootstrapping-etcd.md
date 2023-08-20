@@ -8,6 +8,7 @@ The commands in this lab must be run on each controller instance: `controller-0`
 Example:
 
 > Replace value of the Name tag accordingly: `controller-0`, `controller-1`, and `controller-2`
+
 > Execute in the directory where you have you `kubernetes-the-hard-way-key.pem`
 
 ```
