@@ -29,14 +29,13 @@ Create the `kubernetes` subnet in the `kubernetes-the-hard-way-vpc` VPC network:
 ```
 for i in 0 1 2; do
   aws ec2 create-subnet \
-    --availability-zone $(aws ec2 describe-availability-zones --filters "Name=region-name,Values=us-east-1" --query "AvailabilityZones[${i}].ZoneName" --output text) \
+    --availability-zone $(aws ec2 describe-availability-zones --query "AvailabilityZones[${i}].ZoneName" --output text) \
     --vpc-id $(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=kubernetes-the-hard-way-vpc" --query "Vpcs[*].VpcId" --output text) \
     --cidr-block 10.240.${i}.0/24  \
     --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=kubernetes-subnet-${i}},{Key=Project,Value=kubernetes-the-hard-way}]" \
     --query Subnet.SubnetId --output text
 done
 ```
-
 > The `10.240.0.0/24` IP address range can host up to 254 compute instances.
 
 ### Firewall Rules
