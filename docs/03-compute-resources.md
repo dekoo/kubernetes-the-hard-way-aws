@@ -70,16 +70,50 @@ aws ec2 authorize-security-group-ingress \
 
 Network ACLs by default allow all traffic. 
 
-### Kubernetes Public IP Address
+### Network Load Balancer
 
 > An [elastic load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) will be used to expose the Kubernetes API Servers to remote clients.
 
-Allocate a static IP address that will be attached to the external load balancer fronting the Kubernetes API Servers:
+Create empty target group for the port `6443` which is default for the Kubernetes API Server:
+
+>  Targets will be added later once API Server is configured.
 
 ```
-aws ec2 allocate-address \
-  --tag-specifications 'ResourceType=elastic-ip,Tags=[{Key=Name,Value=kubernetes-the-hard-way-ip},{Key=Project,Value=kubernetes-the-hard-way}]' \
-  --output text
+aws elbv2 create-target-group --name kubernetes-hard-way-tg \
+  --protocol TCP --port 6443 --health-check-protocol HTTPS \
+  --health-check-port 6443 --health-check-path '/healthz' \
+  --target-type instance --vpc-id $(aws ec2 describe-vpcs \
+    --filters "Name=tag:Name,Values=kubernetes-the-hard-way-vpc" \
+    --query "Vpcs[*].VpcId" --output text) \
+  --tags 'Key=Project,Value=kubernetes-the-hard-way' --output text --query TargetGroups[].TargetGroupName
+```
+
+Create Network Load Balancer:
+
+```
+aws elbv2 create-load-balancer --name kubernetes-hard-way-nlb \
+  --subnets \
+    $(aws ec2 describe-subnets --filters "Name=tag:Name,Values=kubernetes-subnet-0" \
+      --query "Subnets[*].SubnetId" --output text) \
+    $(aws ec2 describe-subnets --filters "Name=tag:Name,Values=kubernetes-subnet-1" \
+      --query "Subnets[*].SubnetId" --output text) \
+    $(aws ec2 describe-subnets --filters "Name=tag:Name,Values=kubernetes-subnet-2" \
+      --query "Subnets[*].SubnetId" --output text) \
+  --tags 'Key=Project,Value=kubernetes-the-hard-way' --type network \
+  --output text --query LoadBalancers[].DNSName
+
+aws elbv2 modify-load-balancer-attributes --load-balancer-arn $(aws elbv2 describe-load-balancers \
+    --names kubernetes-hard-way-nlb --output text --query LoadBalancers[].LoadBalancerArn) \
+    --attributes 'Key=load_balancing.cross_zone.enabled,Value=true' --output text
+```
+
+Associate Network Load Balancer with the Target Group:
+
+```
+aws elbv2 create-listener --load-balancer-arn $(aws elbv2 describe-load-balancers \
+    --names kubernetes-hard-way-nlb --output text --query LoadBalancers[].LoadBalancerArn) \
+  --protocol TCP --port 6443 --default-actions Type=forward,TargetGroupArn=$(aws elbv2 describe-target-groups \
+    --names kubernetes-hard-way-tg --output text --query TargetGroups[].TargetGroupArn) --output text
 ```
 
 ### Internet Gateway
@@ -174,13 +208,11 @@ Create three compute instances which will host the Kubernetes control plane:
 
 > Note that private IP address must belong to the selected subnet which in turn must correspond to one of the availability zones (AZ) in a way to ensure even spread of controllers instances across three AZ.
 
-> Elastic IP address is embed as an envrionment variable into controller instances to simplify further configuration of API server on [Bootstraping Kubernetes Controllers](08-bootstrapping-kubernetes-controllers.md) step
+> Network Load Balancer DNS is passed into controller instances as an environment variable to facilitate configuration of API server [Bootstraping Kubernetes Controllers](08-bootstrapping-kubernetes-controllers.md) step
 
 ```
-KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-addresses \
-  --filters "Name=tag:Name,Values=kubernetes-the-hard-way-ip" \
-  --query "Addresses[*].{StaticIp:PublicIp}" \
-  --output text)
+PUBLIC_API_DNS=$(aws elbv2 describe-load-balancers --names kubernetes-hard-way-nlb \
+  --output text --query LoadBalancers[].DNSName)
 
 for i in 0 1 2; do
   aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 \
@@ -193,7 +225,7 @@ for i in 0 1 2; do
     --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' \
     --private-ip-address 10.240.${i}.11 \
     --output text --query "Instances[0].InstanceId" \
-    --user-data "$(printf '#cloud-config\n\nruncmd:\n - echo export KUBERNETES_PUBLIC_ADDRESS='${KUBERNETES_PUBLIC_ADDRESS}' >> /etc/bashrc \n - export KUBERNETES_PUBLIC_ADDRESS='${KUBERNETES_PUBLIC_ADDRESS}')')"
+    --user-data "$(printf '#cloud-config\n\nruncmd:\n - echo export PUBLIC_API_DNS='${PUBLIC_API_DNS}' >> /etc/bashrc \n - export PUBLIC_API_DNS='${PUBLIC_API_DNS}')')"
 done
 ```
 
