@@ -7,7 +7,8 @@ Kubernetes components are stateless and store cluster state in [etcd](https://gi
 The commands in this lab must be run on each controller instance: `controller-0`, `controller-1`, and `controller-2`. Login to each controller instance using the `ssh` command. IP address can be retrieved dynamically using `aws cli`.
 Example:
 
-> Replace value of the Name tag accordingly
+> Replace value of the Name tag accordingly: `controller-0`, `controller-1`, and `controller-2`
+> Execute in the directory where you have you `kubernetes-the-hard-way-key.pem`
 
 ```
 ssh -i "kubernetes-the-hard-way-key.pem" ec2-user@$(aws ec2 describe-instances --output text \
