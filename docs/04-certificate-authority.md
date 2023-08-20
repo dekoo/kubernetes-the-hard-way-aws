@@ -282,12 +282,9 @@ The `kubernetes-the-hard-way-ip` static IP address will be included in the list 
 Generate the Kubernetes API Server certificate and private key:
 
 ```
-KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-addresses \
-  --filters "Name=tag:Name,Values=kubernetes-the-hard-way-ip" \
-  --query "Addresses[*].{StaticIp:PublicIp}" \
-  --output text)
+PUBLIC_API_DNS=$(aws elbv2 describe-load-balancers --names kubernetes-hard-way-nlb --output text --query LoadBalancers[].DNSName)
 
-KUBERNETES_HOSTNAMES=kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.svc.cluster.local
+KUBERNETES_HOSTNAMES=kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.svc.cluster.local,
 
 cat > kubernetes-csr.json <<EOF
 {
@@ -312,7 +309,7 @@ cfssl gencert \
   -ca=ca.pem \
   -ca-key=ca-key.pem \
   -config=ca-config.json \
-  -hostname=10.32.0.1,10.240.0.11,10.240.1.11,10.240.2.11,${KUBERNETES_PUBLIC_ADDRESS},127.0.0.1,${KUBERNETES_HOSTNAMES} \
+  -hostname=10.32.0.1,10.240.0.11,10.240.1.11,10.240.2.11,${PUBLIC_API_DNS},127.0.0.1,${KUBERNETES_HOSTNAMES} \
   -profile=kubernetes \
   kubernetes-csr.json | cfssljson -bare kubernetes
 
