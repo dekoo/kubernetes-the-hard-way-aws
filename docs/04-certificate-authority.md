@@ -387,7 +387,7 @@ Copy the appropriate certificates and private keys to each controller instance:
 
 ```
 for instance in controller-0 controller-1 controller-2; do
-  scp -i "kubernetes-the-hard-way-key.pem" ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem \
+  scp -i "kubernetes-the-hard-way-key.pem" ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem service-account-key.pem service-account.pem \
     ec2-user@$(aws ec2 describe-instances --output text \
       --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
       --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}"):~/
