@@ -151,7 +151,7 @@ aws elbv2 create-listener --load-balancer-arn $(aws elbv2 describe-load-balancer
     --names kubernetes-hard-way-tg --output text --query TargetGroups[].TargetGroupArn) --output text
 ```
 
-> Configuration of the targets within the group be completed in [Bootstrating Kubernetes Controllers](08-bootstrapping-kubernetes-controllers.md) section.
+> Configuration of the targets within the group be completed in [Bootstrapping Kubernetes Controllers](08-bootstrapping-kubernetes-controllers.md) section.
 
 ## Compute Instances
 
