@@ -174,7 +174,14 @@ Create three compute instances which will host the Kubernetes control plane:
 
 > Note that private IP address must belong to the selected subnet which in turn must correspond to one of the availability zones (AZ) in a way to ensure even spread of controllers instances across three AZ.
 
+> Elastic IP address is embed as an envrionment variable into controller instances to simplify further configuration of API server on [Bootstraping Kubernetes Controllers](08-bootstrapping-kubernetes-controllers.md) step
+
 ```
+KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-addresses \
+  --filters "Name=tag:Name,Values=kubernetes-the-hard-way-ip" \
+  --query "Addresses[*].{StaticIp:PublicIp}" \
+  --output text)
+
 for i in 0 1 2; do
   aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 \
     --instance-type t2.micro \
@@ -185,7 +192,8 @@ for i in 0 1 2; do
     --associate-public-ip-address \
     --block-device-mapping 'DeviceName=/dev/xvda,Ebs={DeleteOnTermination=true,VolumeSize=30,VolumeType=gp3}' \
     --private-ip-address 10.240.${i}.11 \
-    --output text --query "Instances[0].InstanceId"
+    --output text --query "Instances[0].InstanceId" \
+    --user-data "$(printf '#cloud-config\n\nruncmd:\n - echo export KUBERNETES_PUBLIC_ADDRESS='${KUBERNETES_PUBLIC_ADDRESS}' >> /etc/bashrc \n - export KUBERNETES_PUBLIC_ADDRESS='${KUBERNETES_PUBLIC_ADDRESS}')')"
 done
 ```
 
