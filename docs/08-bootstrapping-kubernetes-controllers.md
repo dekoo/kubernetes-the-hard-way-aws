@@ -353,9 +353,10 @@ KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-addresses \
 Retrieve the `kubernetes-the-hard-way-ip` static IP address:
 
 ```
-KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region) \
-  --format 'value(address)')
+KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-addresses \
+  --filters "Name=tag:Name,Values=kubernetes-the-hard-way-ip" \
+  --query "Addresses[*].{StaticIp:PublicIp}" \
+  --output text)
 ```
 
 Make a HTTP request for the Kubernetes version info:
