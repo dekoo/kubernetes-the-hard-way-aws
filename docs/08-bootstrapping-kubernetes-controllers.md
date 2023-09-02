@@ -352,4 +352,6 @@ curl --cacert ca.pem https://$(aws elbv2 describe-load-balancers --names kuberne
 }
 ```
 
+> If request is stuck. verify with `telnet` and make sure that your local network provider and(or) administrator are not blocking respective ports, e.g. by switching to alternative network (mobile?)
+
 Next: [Bootstrapping the Kubernetes Worker Nodes](09-bootstrapping-kubernetes-workers.md)
