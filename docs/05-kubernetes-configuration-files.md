@@ -6,9 +6,9 @@ In this lab you will generate [Kubernetes configuration files](https://kubernete
 
 In this section you will generate kubeconfig files for the `controller manager`, `kubelet`, `kube-proxy`, and `scheduler` clients and the `admin` user.
 
-### Kubernetes Public IP Address
+### Kubernetes Public DNS
 
-Each kubeconfig requires a Kubernetes API Server to connect to. To support high availability the IP address assigned to the external load balancer fronting the Kubernetes API Servers will be used.
+Each kubeconfig requires a Kubernetes API Server to connect to. To support high availability the DNS address assigned to the external load balancer fronting the Kubernetes API Servers will be used.
 
 Retrieve the `kubernetes-the-hard-way-ip` static IP address:
 
