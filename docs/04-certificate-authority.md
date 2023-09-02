@@ -105,9 +105,13 @@ Generate a certificate and private key for each Kubernetes worker node:
 
 ```
 for instance in worker-0 worker-1 worker-2; do
-cat > ${instance}-csr.json <<EOF
+INTERNAL_DNS=$(aws ec2 describe-instances --output text \
+      --query "Reservations[*].Instances[*].{PrivateDnsName:PrivateDnsName}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}")
+
+cat > ${INTERNAL_DNS}-csr.json <<EOF
 {
-  "CN": "system:node:${instance}",
+  "CN": "system:node:${INTERNAL_DNS}",
   "key": {
     "algo": "rsa",
     "size": 2048
@@ -136,21 +140,21 @@ cfssl gencert \
   -ca=ca.pem \
   -ca-key=ca-key.pem \
   -config=ca-config.json \
-  -hostname=${instance},${EXTERNAL_IP},${INTERNAL_IP} \
+  -hostname=${INTERNAL_DNS},${EXTERNAL_IP},${INTERNAL_IP} \
   -profile=kubernetes \
-  ${instance}-csr.json | cfssljson -bare ${instance}
+  ${INTERNAL_DNS}-csr.json | cfssljson -bare ${INTERNAL_DNS}
 done
 ```
 
 Results:
 
 ```
-worker-0-key.pem
-worker-0.pem
-worker-1-key.pem
-worker-1.pem
-worker-2-key.pem
-worker-2.pem
+ip-10-240-0-21.ec2.internal-key.pem
+ip-10-240-0-21.ec2.internal.pem
+ip-10-240-1-21.ec2.internal-key.pem
+ip-10-240-1-21.ec2.internal.pem
+ip-10-240-2-21.ec2.internal-key.pem
+ip-10-240-2-21.ec2.internal.pem
 ```
 
 ### The Controller Manager Client Certificate
@@ -373,20 +377,14 @@ Copy the appropriate certificates and private keys to each worker instance, rena
 
 ```
 for instance in worker-0 worker-1 worker-2; do
-  scp -i "kubernetes-the-hard-way-key.pem" ca.pem \
+  INTERNAL_DNS=$(aws ec2 describe-instances --output text \
+      --query "Reservations[*].Instances[*].{PrivateDnsName:PrivateDnsName}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}")
+
+  scp -i "kubernetes-the-hard-way-key.pem" ca.pem ${INTERNAL_DNS}-key.pem ${INTERNAL_DNS}.pem \
     ec2-user@$(aws ec2 describe-instances --output text \
       --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
       --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}"):~/
-
-  scp -i "kubernetes-the-hard-way-key.pem" ${instance}-key.pem \
-    ec2-user@$(aws ec2 describe-instances --output text \
-      --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
-      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}"):~/worker-key.pem
-
-  scp -i "kubernetes-the-hard-way-key.pem" ${instance}.pem \
-    ec2-user@$(aws ec2 describe-instances --output text \
-      --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
-      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}"):~/worker.pem
 done
 ```
 
