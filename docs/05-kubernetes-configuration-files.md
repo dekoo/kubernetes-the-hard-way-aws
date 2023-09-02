@@ -55,9 +55,9 @@ done
 Results:
 
 ```
-worker-0.kubeconfig
-worker-1.kubeconfig
-worker-2.kubeconfig
+ip-10-240-0-21.ec2.internal.kubeconfig
+ip-10-240-1-21.ec2.internal.kubeconfig
+ip-10-240-2-21.ec2.internal..kubeconfig
 ```
 
 ### The kube-proxy Kubernetes Configuration File
