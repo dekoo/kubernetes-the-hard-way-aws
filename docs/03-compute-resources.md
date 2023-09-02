@@ -258,9 +258,7 @@ done
 List the compute instances in your default region:
 
 ```
-aws ec2 describe-instances \
-	--output text \
-	--query "Reservations[*].Instances[*].{ID:InstanceId,Name:Tags[?Key=='Name'].Value | [0],PublicIP:PublicIpAddress,Status:State.Name}"
+aws ec2 describe-instances --output text --query "Reservations[*].Instances[*].{ID:InstanceId,Name:Tags[?Key=='Name'].Value | [0],PublicIP:PublicIpAddress,Status:State.Name}"
 ```
 
 > output
