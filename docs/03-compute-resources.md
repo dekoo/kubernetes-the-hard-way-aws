@@ -68,7 +68,7 @@ aws ec2 authorize-security-group-ingress \
   --protocol icmp --port -1 --cidr 0.0.0.0/0 --output text
 ```
 
-Network ACLs by default allow all traffic. 
+Network ACLs by default allow all traffic, hence we leave them as is. 
 
 ### Internet Gateway
 In order to allow access to our compute resources within VPC from local machine via SSH we need to create Internet Gateway and attach it to our VPC:
@@ -111,8 +111,6 @@ aws ec2 create-route --route-table-id $(aws ec2 describe-route-tables \
 
 Create empty target group for the port `6443` which is default for the Kubernetes API Server:
 
->  Targets will be added later once API Server is configured.
-
 ```
 aws elbv2 create-target-group --name kubernetes-hard-way-tg \
   --protocol TCP --port 6443 --health-check-protocol HTTPS \
@@ -151,7 +149,7 @@ aws elbv2 create-listener --load-balancer-arn $(aws elbv2 describe-load-balancer
     --names kubernetes-hard-way-tg --output text --query TargetGroups[].TargetGroupArn) --output text
 ```
 
-> Configuration of the targets within the group be completed in [Bootstrapping Kubernetes Controllers](08-bootstrapping-kubernetes-controllers.md) section.
+> Configuration of the targets within the group will be completed in [Bootstrapping Kubernetes Controllers](08-bootstrapping-kubernetes-controllers.md) section, once control plane is ready. 
 
 ## Compute Instances
 
