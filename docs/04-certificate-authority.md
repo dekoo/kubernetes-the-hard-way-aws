@@ -369,14 +369,24 @@ service-account.pem
 
 ## Distribute the Client and Server Certificates
 
-Copy the appropriate certificates and private keys to each worker instance:
+Copy the appropriate certificates and private keys to each worker instance, renaming them to `worker-xxx` to simplify further within instances:
 
 ```
 for instance in worker-0 worker-1 worker-2; do
-  scp -i "kubernetes-the-hard-way-key.pem" ca.pem ${instance}-key.pem ${instance}.pem \
+  scp -i "kubernetes-the-hard-way-key.pem" ca.pem \
     ec2-user@$(aws ec2 describe-instances --output text \
       --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
       --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}"):~/
+
+  scp -i "kubernetes-the-hard-way-key.pem" ${instance}-key.pem \
+    ec2-user@$(aws ec2 describe-instances --output text \
+      --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}"):~/worker-key.pem
+
+  scp -i "kubernetes-the-hard-way-key.pem" ${instance}.pem \
+    ec2-user@$(aws ec2 describe-instances --output text \
+      --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}"):~/worker.pem
 done
 ```
 
