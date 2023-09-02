@@ -217,7 +217,7 @@ kubectl cluster-info --kubeconfig admin.kubeconfig
 Kubernetes control plane is running at https://127.0.0.1:6443
 ```
 
-A [AWS Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) will be used to distribute traffic across the three API servers and allow each API server to terminate TLS connections and validate client certificates. We will be configuring (health checks)[https://docs.aws.amazon.com/elasticloadbalancing/latest/network/target-group-health-checks.html] later in the lab, it will be using `/healthz` API server endpoint, hence below we verify if it works.
+A [AWS Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) will be used to distribute traffic across the three API servers and allow each API server to terminate TLS connections and validate client certificates. We will be configuring [health checks](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/target-group-health-checks.html) later in the lab, it will be using `/healthz` API server endpoint, hence below we verify if it works.
 
 > The `/healthz` API server endpoint does not require authentication by default.
 
