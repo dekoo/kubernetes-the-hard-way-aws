@@ -180,8 +180,9 @@ Generate a kubeconfig file for the `admin` user:
     --kubeconfig=admin.kubeconfig
 
   kubectl config use-context default --kubeconfig=admin.kubeconfig
-
 ```
+
+> This one is to be used on controller instances, addressing API server by `127.0.0.1`. Similar `admin` kubeconfig to access API server from your local machine will be created in [Configuring kubectl for Remote Access](10-configuring-kubectl.md) lab
 
 Results:
 
