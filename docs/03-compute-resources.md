@@ -209,7 +209,7 @@ Create three compute instances which will host the Kubernetes control plane:
 
 > Note that private IP address must belong to the selected subnet which in turn must correspond to one of the availability zones (AZ) in a way to ensure even spread of controllers instances across three AZ.
 
-> Network Load Balancer DNS is passed into controller instances as an environment variable to facilitate configuration of API server [Bootstraping Kubernetes Controllers](08-bootstrapping-kubernetes-controllers.md) step
+> Network Load Balancer DNS is passed into controller instances via [user data](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html) as an environment variable `PUBLIC_API_DNS` to facilitate configuration of API server [Bootstraping Kubernetes Controllers](https://github.com/dekoo/kubernetes-the-hard-way-aws/blob/master/docs/08-bootstrapping-kubernetes-controllers.md#configure-the-kubernetes-api-server) step. 
 
 ```
 PUBLIC_API_DNS=$(aws elbv2 describe-load-balancers --names kubernetes-hard-way-nlb \
@@ -232,7 +232,7 @@ done
 
 ### Kubernetes Workers
 
-Each worker instance requires a pod subnet allocation from the Kubernetes cluster CIDR range. The pod subnet allocation will be used to configure container networking in a later exercise. The `pod_cidr` environment variable set via [user data](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html) will be used to expose pod subnet allocations to compute instances at runtime.
+Each worker instance requires a pod subnet allocation from the Kubernetes cluster CIDR range. The pod subnet allocation will be used to configure container networking in a later exercise. The `POD_CIDR` environment variable set via [user data](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html) will be used to expose pod subnet allocations to compute instances at runtime.
 
 > The Kubernetes cluster CIDR range is defined by the Controller Manager's `--cluster-cidr` flag. In this tutorial the cluster CIDR range will be set to `10.200.0.0/16`, which supports 254 subnets.
 
