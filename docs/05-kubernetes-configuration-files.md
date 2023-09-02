@@ -57,7 +57,7 @@ Results:
 ```
 ip-10-240-0-21.ec2.internal.kubeconfig
 ip-10-240-1-21.ec2.internal.kubeconfig
-ip-10-240-2-21.ec2.internal..kubeconfig
+ip-10-240-2-21.ec2.internal.kubeconfig
 ```
 
 ### The kube-proxy Kubernetes Configuration File
