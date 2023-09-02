@@ -183,8 +183,8 @@ EOF
 
 ```
 {
-  sudo mv worker-key.pem worker.pem /var/lib/kubelet/
-  sudo mv worker.kubeconfig /var/lib/kubelet/kubeconfig
+  sudo mv ${HOSTNAME}-key.pem ${HOSTNAME}.pem /var/lib/kubelet/
+  sudo mv ${HOSTNAME}.kubeconfig /var/lib/kubelet/kubeconfig
   sudo mv ca.pem /var/lib/kubernetes/
 }
 ```
@@ -210,8 +210,8 @@ clusterDNS:
 podCIDR: "${POD_CIDR}"
 resolvConf: "/run/systemd/resolve/resolv.conf"
 runtimeRequestTimeout: "15m"
-tlsCertFile: "/var/lib/kubelet/worker.pem"
-tlsPrivateKeyFile: "/var/lib/kubelet/worker-key.pem"
+tlsCertFile: "/var/lib/kubelet/${HOSTNAME}.pem"
+tlsPrivateKeyFile: "/var/lib/kubelet/${HOSTNAME}-key.pem"
 EOF
 ```
 
@@ -316,10 +316,10 @@ kubectl get nodes --kubeconfig admin.kubeconfig
 > output
 
 ```
-NAME       STATUS   ROLES    AGE   VERSION
-worker-0   Ready    <none>   22s   v1.21.0
-worker-1   Ready    <none>   22s   v1.21.0
-worker-2   Ready    <none>   22s   v1.21.0
+NAME                          STATUS   ROLES    AGE     VERSION
+ip-10-240-0-21.ec2.internal   Ready    <none>   6m42s   v1.21.0
+ip-10-240-1-21.ec2.internal   Ready    <none>   7m34s   v1.21.0
+ip-10-240-2-21.ec2.internal   Ready    <none>   16s     v1.21.0
 ```
 
 Next: [Configuring kubectl for Remote Access](10-configuring-kubectl.md)
