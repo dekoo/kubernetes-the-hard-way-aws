@@ -27,24 +27,28 @@ Generate a kubeconfig file for each worker node:
 
 ```
 for instance in worker-0 worker-1 worker-2; do
+  INTERNAL_DNS=$(aws ec2 describe-instances --output text \
+      --query "Reservations[*].Instances[*].{PrivateDnsName:PrivateDnsName}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}")
+
   kubectl config set-cluster kubernetes-the-hard-way \
     --certificate-authority=ca.pem \
     --embed-certs=true \
     --server=https://${PUBLIC_API_DNS}:6443 \
-    --kubeconfig=${instance}.kubeconfig
+    --kubeconfig=${INTERNAL_DNS}.kubeconfig
 
-  kubectl config set-credentials system:node:${instance} \
-    --client-certificate=${instance}.pem \
-    --client-key=${instance}-key.pem \
+  kubectl config set-credentials system:node:${INTERNAL_DNS} \
+    --client-certificate=${INTERNAL_DNS}.pem \
+    --client-key=${INTERNAL_DNS}-key.pem \
     --embed-certs=true \
-    --kubeconfig=${instance}.kubeconfig
+    --kubeconfig=${INTERNAL_DNS}.kubeconfig
 
   kubectl config set-context default \
     --cluster=kubernetes-the-hard-way \
-    --user=system:node:${instance} \
-    --kubeconfig=${instance}.kubeconfig
+    --user=system:node:${INTERNAL_DNS} \
+    --kubeconfig=${INTERNAL_DNS}.kubeconfig
 
-  kubectl config use-context default --kubeconfig=${instance}.kubeconfig
+  kubectl config use-context default --kubeconfig=${INTERNAL_DNS}.kubeconfig
 done
 ```
 
@@ -192,15 +196,16 @@ Copy the appropriate `kubelet` and `kube-proxy` kubeconfig files to each worker 
 
 ```
 for instance in worker-0 worker-1 worker-2; do
-  scp -i "kubernetes-the-hard-way-key.pem" ${instance}.kubeconfig \
-    ec2-user@$(aws ec2 describe-instances --output text \
-      --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
-      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}"):~/worker.kubeconfig
 
-  scp -i "kubernetes-the-hard-way-key.pem" kube-proxy.kubeconfig \
+  INTERNAL_DNS=$(aws ec2 describe-instances --output text \
+      --query "Reservations[*].Instances[*].{PrivateDnsName:PrivateDnsName}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}")
+
+  scp -i "kubernetes-the-hard-way-key.pem" ${INTERNAL_DNS}.kubeconfig kube-proxy.kubeconfig \
     ec2-user@$(aws ec2 describe-instances --output text \
       --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
       --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}"):~/
+
 done
 ```
 
