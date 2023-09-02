@@ -192,7 +192,12 @@ Copy the appropriate `kubelet` and `kube-proxy` kubeconfig files to each worker 
 
 ```
 for instance in worker-0 worker-1 worker-2; do
-  scp -i "kubernetes-the-hard-way-key.pem" ${instance}.kubeconfig kube-proxy.kubeconfig \
+  scp -i "kubernetes-the-hard-way-key.pem" ${instance}.kubeconfig \
+    ec2-user@$(aws ec2 describe-instances --output text \
+      --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}"):~/worker.kubeconfig
+
+  scp -i "kubernetes-the-hard-way-key.pem" kube-proxy.kubeconfig \
     ec2-user@$(aws ec2 describe-instances --output text \
       --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
       --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=${instance}"):~/
