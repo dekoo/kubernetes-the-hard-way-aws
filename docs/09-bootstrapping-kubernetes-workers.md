@@ -23,7 +23,7 @@ ssh -i "kubernetes-the-hard-way-key.pem" ec2-user@$(aws ec2 describe-instances -
 Install the OS dependencies:
 
 ```
-sudo yum install socat conntrack ipset
+sudo yum install socat conntrack ipset iptables
 ```
 
 > The socat binary enables support for the `kubectl port-forward` command.
