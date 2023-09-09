@@ -28,6 +28,14 @@ sudo yum install socat conntrack ipset iptables
 
 > The socat binary enables support for the `kubectl port-forward` command.
 
+Mount the cgroup into the cgroup directory with systemd as it is not configured properly on the Linux version we use. 
+
+```
+sudo mount -t cgroup -o none,name=systemd cgroup /sys/fs/cgroup/systemd
+```
+
+> Cgroups are used to limit, prioritize, and distribute system resources such as CPU, memory, and I/O bandwidth among different groups of processes.
+
 ### Disable Swap
 
 By default the kubelet will fail to start if [swap](https://help.ubuntu.com/community/SwapFaq) is enabled. It is [recommended](https://github.com/kubernetes/kubernetes/issues/7294) that swap be disabled to ensure Kubernetes can provide proper resource allocation and quality of service.
@@ -50,13 +58,13 @@ sudo swapoff -a
 
 ```
 wget -q --show-progress --https-only --timestamping \
-  https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.21.0/crictl-v1.21.0-linux-amd64.tar.gz \
-  https://github.com/opencontainers/runc/releases/download/v1.0.0-rc93/runc.amd64 \
-  https://github.com/containernetworking/plugins/releases/download/v0.9.1/cni-plugins-linux-amd64-v0.9.1.tgz \
-  https://github.com/containerd/containerd/releases/download/v1.4.4/containerd-1.4.4-linux-amd64.tar.gz \
-  https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kubectl \
-  https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kube-proxy \
-  https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kubelet
+  https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.28.0/crictl-v1.28.0-linux-amd64.tar.gz \
+  https://github.com/opencontainers/runc/releases/download/v1.1.9/runc.amd64 \
+  https://github.com/containernetworking/plugins/releases/download/v1.3.0/cni-plugins-linux-amd64-v1.3.0.tgz \
+  https://github.com/containerd/containerd/releases/download/v1.7.5/containerd-1.7.5-linux-amd64.tar.gz \
+  https://dl.k8s.io/v1.28.1/bin/linux/amd64/kubectl \
+  https://dl.k8s.io/v1.28.1/bin/linux/amd64/kube-proxy \
+  https://dl.k8s.io/v1.28.1/bin/linux/amd64/kubelet
 ```
 
 Create the installation directories:
@@ -76,9 +84,9 @@ Install the worker binaries:
 ```
 {
   mkdir containerd
-  tar -xvf crictl-v1.21.0-linux-amd64.tar.gz
-  tar -xvf containerd-1.4.4-linux-amd64.tar.gz -C containerd
-  sudo tar -xvf cni-plugins-linux-amd64-v0.9.1.tgz -C /opt/cni/bin/
+  tar -xvf crictl-v1.28.0-linux-amd64.tar.gz
+  tar -xvf containerd-1.7.5-linux-amd64.tar.gz -C containerd
+  sudo tar -xvf cni-plugins-linux-amd64-v1.3.0.tgz -C /opt/cni/bin/
   sudo mv runc.amd64 runc
   chmod +x crictl kubectl kube-proxy kubelet runc 
   sudo mv crictl kubectl kube-proxy kubelet runc /usr/local/bin/
@@ -212,6 +220,8 @@ resolvConf: "/run/systemd/resolve/resolv.conf"
 runtimeRequestTimeout: "15m"
 tlsCertFile: "/var/lib/kubelet/${HOSTNAME}.pem"
 tlsPrivateKeyFile: "/var/lib/kubelet/${HOSTNAME}-key.pem"
+cgroupDriver: "systemd"
+registerNode: true
 EOF
 ```
 
@@ -230,12 +240,8 @@ Requires=containerd.service
 [Service]
 ExecStart=/usr/local/bin/kubelet \\
   --config=/var/lib/kubelet/kubelet-config.yaml \\
-  --container-runtime=remote \\
   --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
-  --image-pull-progress-deadline=2m \\
   --kubeconfig=/var/lib/kubelet/kubeconfig \\
-  --network-plugin=cni \\
-  --register-node=true \\
   --v=2
 Restart=on-failure
 RestartSec=5
