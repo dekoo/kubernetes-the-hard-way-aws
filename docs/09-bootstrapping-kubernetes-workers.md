@@ -113,7 +113,7 @@ Create the `bridge` network configuration file:
 ```
 cat <<EOF | sudo tee /etc/cni/net.d/10-bridge.conf
 {
-    "cniVersion": "0.4.0",
+    "cniVersion": "1.3.1",
     "name": "bridge",
     "type": "bridge",
     "bridge": "cnio0",
@@ -135,7 +135,7 @@ Create the `loopback` network configuration file:
 ```
 cat <<EOF | sudo tee /etc/cni/net.d/99-loopback.conf
 {
-    "cniVersion": "0.4.0",
+    "cniVersion": "1.3.1",
     "name": "lo",
     "type": "loopback"
 }
@@ -323,10 +323,10 @@ kubectl get nodes --kubeconfig admin.kubeconfig
 > output
 
 ```
-NAME                          STATUS   ROLES    AGE     VERSION
-ip-10-240-0-21.ec2.internal   Ready    <none>   6m42s   v1.21.0
-ip-10-240-1-21.ec2.internal   Ready    <none>   7m34s   v1.21.0
-ip-10-240-2-21.ec2.internal   Ready    <none>   16s     v1.21.0
+NAME                          STATUS   ROLES    AGE   VERSION
+ip-10-240-0-21.ec2.internal   Ready    <none>   22m   v1.28.1
+ip-10-240-1-21.ec2.internal   Ready    <none>   23s   v1.28.1
+ip-10-240-2-21.ec2.internal   Ready    <none>   21s   v1.28.1
 ```
 
 Next: [Configuring kubectl for Remote Access](10-configuring-kubectl.md)
