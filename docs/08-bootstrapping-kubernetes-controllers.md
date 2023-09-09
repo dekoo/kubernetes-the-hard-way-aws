@@ -203,6 +203,23 @@ sudo systemctl start kube-apiserver kube-controller-manager kube-scheduler
 
 > Allow up to 10 seconds for the Kubernetes API Server to fully initialize.
 
+### Add Host File Entries
+
+In order for kubectl exec commands to work, the controller nodes must each be able to resolve the worker hostnames. This is not set up by default in AWS. The workaround is to add manual host entries on each of the controller nodes:
+
+```
+cat <<EOF | sudo tee -a /etc/hosts
+10.240.0.21 ip-10-240-0-21.ec2.internal
+10.240.1.21 ip-10-240-1-21.ec2.internal
+10.240.2.21 ip-10-240-2-21.ec2.internal
+EOF
+```
+
+If this step is missed, the DNS Cluster Add-on testing will fail with an error like:
+
+```
+Error from server: error dialing backend: dial tcp: lookup ip-10-240-2-21.ec2.internal on 10.240.0.2:53: no such host
+```
 
 ### Verification
 
