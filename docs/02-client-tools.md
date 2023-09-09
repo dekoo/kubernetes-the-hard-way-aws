@@ -115,4 +115,34 @@ kubectl version --client
 Client Version: version.Info{Major:"1", Minor:"21", GitVersion:"v1.21.0", GitCommit:"cb303e613a121a29364f75cc67d3d580833a7479", GitTreeState:"clean", BuildDate:"2021-04-08T16:31:21Z", GoVersion:"go1.16.1", Compiler:"gc", Platform:"linux/amd64"}
 ```
 
+## Install HELM
+
+Helm is the package manager for Kubernetes, and you can read detailed background information in the [CNCF Helm Project Journey report](https://www.cncf.io/cncf-helm-project-journey/).
+
+### Linux
+
+Helm now has an installer script that will automatically grab the latest version of Helm and install it locally.
+
+```
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+```
+
+### Other
+
+Other installation options can be found [here](https://helm.sh/docs/intro/install/).
+
+### Verification
+
+```
+helm version
+```
+
+> output
+
+```
+version.BuildInfo{Version:"v3.12.3", GitCommit:"3a31588ad33fe3b89af5a2a54ee1d25bfe6eaa5e", GitTreeState:"clean", GoVersion:"go1.20.7"}
+```
+
 Next: [Provisioning Compute Resources](03-compute-resources.md)
