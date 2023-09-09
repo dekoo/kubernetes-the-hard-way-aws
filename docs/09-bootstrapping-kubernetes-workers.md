@@ -31,6 +31,7 @@ sudo yum install socat conntrack ipset iptables
 Mount the cgroup into the cgroup directory with systemd as it is not configured properly on the Linux version we use. 
 
 ```
+sudo mkdir /sys/fs/cgroup/systemd
 sudo mount -t cgroup -o none,name=systemd cgroup /sys/fs/cgroup/systemd
 ```
 
