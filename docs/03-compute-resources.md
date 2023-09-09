@@ -209,7 +209,7 @@ Create three compute instances which will host the Kubernetes control plane:
 
 > Note that private IP address must belong to the selected subnet which in turn must correspond to one of the availability zones (AZ) in a way to ensure even spread of controllers instances across three AZ.
 
-> Network Load Balancer DNS is passed into controller instances via [user data](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html) as an environment variable `PUBLIC_API_DNS` to facilitate configuration of API server [Bootstraping Kubernetes Controllers](https://github.com/dekoo/kubernetes-the-hard-way-aws/blob/master/docs/08-bootstrapping-kubernetes-controllers.md#configure-the-kubernetes-api-server) step. 
+> Network Load Balancer DNS is passed into controller instances via [user data](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html) as an environment variable `PUBLIC_API_DNS` to facilitate configuration of API server on [Bootstraping Kubernetes Controllers](https://github.com/dekoo/kubernetes-the-hard-way-aws/blob/master/docs/08-bootstrapping-kubernetes-controllers.md#configure-the-kubernetes-api-server) step. 
 
 ```
 PUBLIC_API_DNS=$(aws elbv2 describe-load-balancers --names kubernetes-hard-way-nlb \
