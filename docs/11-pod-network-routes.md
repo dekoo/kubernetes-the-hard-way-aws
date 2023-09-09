@@ -54,7 +54,7 @@ for i in 0 1 2; do
 done 
 ```
 
-List the routes in the `kubernetes-the-hard-way` VPC network:
+List the routes in the `kubernetes-the-hard-way-vpc` VPC network:
 
 ```
 aws ec2 describe-route-tables --route-table-ids $(aws ec2 describe-route-tables \
