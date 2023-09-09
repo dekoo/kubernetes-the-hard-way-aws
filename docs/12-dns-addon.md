@@ -4,35 +4,47 @@ In this lab you will deploy the [DNS add-on](https://kubernetes.io/docs/concepts
 
 ## The DNS Cluster Add-on
 
-Deploy the `coredns` cluster add-on:
+Deploy the `coredns` cluster add-on using `helm`
 
 ```
-kubectl apply -f https://storage.googleapis.com/kubernetes-the-hard-way/coredns-1.8.yaml
+helm repo add coredns https://coredns.github.io/helm
+helm --namespace=kube-system install coredns coredns/coredns
 ```
 
 > output
 
 ```
-serviceaccount/coredns created
-clusterrole.rbac.authorization.k8s.io/system:coredns created
-clusterrolebinding.rbac.authorization.k8s.io/system:coredns created
-configmap/coredns created
-deployment.apps/coredns created
-service/kube-dns created
+NAME: coredns
+LAST DEPLOYED: Sat Sep  9 19:56:33 2023
+NAMESPACE: kube-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+CoreDNS is now running in the cluster as a cluster-service.
+
+It can be tested with the following:
+
+1. Launch a Pod with DNS tools:
+
+kubectl run -it --rm --restart=Never --image=infoblox/dnstools:latest dnstools
+
+2. Query the DNS server:
+
+/ # host kubernetes
 ```
 
 List the pods created by the `kube-dns` deployment:
 
 ```
-kubectl get pods -l k8s-app=kube-dns -n kube-system
+kubectl get pods -l k8s-app=coredns -n kube-system
 ```
 
 > output
 
 ```
-NAME                       READY   STATUS    RESTARTS   AGE
-coredns-8494f9c688-hh7r2   1/1     Running   0          10s
-coredns-8494f9c688-zqrj2   1/1     Running   0          10s
+NAME                              READY   STATUS    RESTARTS   AGE
+coredns-coredns-cc869df59-f7t7q   1/1     Running   0          27m
 ```
 
 ## Verification
