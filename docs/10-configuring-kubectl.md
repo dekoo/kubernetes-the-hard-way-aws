@@ -18,17 +18,21 @@ Generate a kubeconfig file suitable for authenticating as the `admin` user:
   kubectl config set-cluster kubernetes-the-hard-way \
     --certificate-authority=ca.pem \
     --embed-certs=true \
-    --server=https://${PUBLIC_API_DNS}:6443
+    --server=https://${PUBLIC_API_DNS}:6443 \
+	--kubeconfig=remote-admin.kubeconfig
 
   kubectl config set-credentials admin \
     --client-certificate=admin.pem \
-    --client-key=admin-key.pem
+    --client-key=admin-key.pem \
+	--embed-certs=true \
+	--kubeconfig=remote-admin.kubeconfig
 
   kubectl config set-context kubernetes-the-hard-way \
     --cluster=kubernetes-the-hard-way \
-    --user=admin
+    --user=admin \
+	--kubeconfig=remote-admin.kubeconfig
 
-  kubectl config use-context kubernetes-the-hard-way
+  kubectl config use-context kubernetes-the-hard-way --kubeconfig=remote-admin.kubeconfig 
 }
 ```
 
