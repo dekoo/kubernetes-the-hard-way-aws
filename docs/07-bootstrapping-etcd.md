@@ -29,15 +29,14 @@ Download the official etcd release binaries from the [etcd](https://github.com/e
 
 ```
 wget -q --show-progress --https-only --timestamping \
-  "https://github.com/etcd-io/etcd/releases/download/v3.4.15/etcd-v3.4.15-linux-amd64.tar.gz"
+  "https://github.com/etcd-io/etcd/releases/download/v3.5.9/etcd-v3.5.9-linux-amd64.tar.gz"
 ```
 
 Extract and install the `etcd` server and the `etcdctl` command line utility:
 
 ```
-tar -xvf etcd-v3.4.15-linux-amd64.tar.gz
-sudo mv etcd-v3.4.15-linux-amd64/etcd* /usr/local/bin/
-
+tar -xvf etcd-v3.5.9-linux-amd64.tar.gz
+sudo mv etcd-v3.5.9-linux-amd64/etcd* /usr/local/bin/
 ```
 
 ### Configure the etcd Server
@@ -46,7 +45,6 @@ sudo mv etcd-v3.4.15-linux-amd64/etcd* /usr/local/bin/
 sudo mkdir -p /etc/etcd /var/lib/etcd
 sudo chmod 700 /var/lib/etcd
 sudo cp ca.pem kubernetes-key.pem kubernetes.pem /etc/etcd/
-
 ```
 
 The instance internal IP address will be used to serve client requests and communicate with etcd cluster peers. Retrieve the internal IP address for the current compute instance using [AWS Instance Metadata Service](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html):
@@ -106,7 +104,6 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable etcd
 sudo systemctl start etcd
-
 ```
 
 > Remember to run the above commands on each controller node: `controller-0`, `controller-1`, and `controller-2`.
