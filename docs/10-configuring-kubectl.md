@@ -19,20 +19,17 @@ Generate a kubeconfig file suitable for authenticating as the `admin` user:
     --certificate-authority=ca.pem \
     --embed-certs=true \
     --server=https://${PUBLIC_API_DNS}:6443 \
-	--kubeconfig=remote-admin.kubeconfig
 
   kubectl config set-credentials admin \
     --client-certificate=admin.pem \
     --client-key=admin-key.pem \
 	--embed-certs=true \
-	--kubeconfig=remote-admin.kubeconfig
 
   kubectl config set-context kubernetes-the-hard-way \
     --cluster=kubernetes-the-hard-way \
-    --user=admin \
-	--kubeconfig=remote-admin.kubeconfig
+    --user=admin 
 
-  kubectl config use-context kubernetes-the-hard-way --kubeconfig=remote-admin.kubeconfig 
+  kubectl config use-context kubernetes-the-hard-way 
 }
 ```
 
@@ -54,7 +51,7 @@ Server Version: version.Info{Major:"1", Minor:"21", GitVersion:"v1.21.0", GitCom
 List the nodes in the remote Kubernetes cluster:
 
 ```
-kubectl get nodes --kubeconfig=remote-admin.kubeconfig 
+kubectl get nodes  
 ```
 
 > output
