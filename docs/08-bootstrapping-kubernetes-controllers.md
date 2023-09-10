@@ -32,10 +32,10 @@ Download the official Kubernetes release binaries:
 
 ```
 wget -q --show-progress --https-only --timestamping \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kube-apiserver" \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kube-controller-manager" \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kube-scheduler" \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kubectl"
+  "https://dl.k8s.io/v1.28.1/bin/linux/amd64/kube-apiserver" \
+  "https://dl.k8s.io/v1.28.1/bin/linux/amd64/kube-controller-manager" \
+  "https://dl.k8s.io/v1.28.1/bin/linux/amd64/kube-scheduler" \
+  "https://dl.k8s.io/v1.28.1/bin/linux/amd64/kubectl"
 ```
 
 Install the Kubernetes binaries:
@@ -43,7 +43,6 @@ Install the Kubernetes binaries:
 ```
 chmod +x kube-apiserver kube-controller-manager kube-scheduler kubectl
 sudo mv kube-apiserver kube-controller-manager kube-scheduler kubectl /usr/local/bin/
-
 ```
 
 ### Configure the Kubernetes API Server
@@ -53,7 +52,6 @@ sudo mkdir -p /var/lib/kubernetes/
 sudo mv ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem \
     service-account-key.pem service-account.pem \
     encryption-config.yaml /var/lib/kubernetes/
-
 ```
 
 The instance internal IP address will be used to serve client requests and communicate with etcd cluster peers. Retrieve the internal IP address for the current compute instance using [AWS Instance Metadata Service](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html):
@@ -198,7 +196,6 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable kube-apiserver kube-controller-manager kube-scheduler
 sudo systemctl start kube-apiserver kube-controller-manager kube-scheduler
-
 ```
 
 > Allow up to 10 seconds for the Kubernetes API Server to fully initialize.
@@ -337,7 +334,6 @@ aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups
       --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=controller-1") Id=$(aws ec2 describe-instances --output text \
 	  --query "Reservations[*].Instances[*].{InstanceId:InstanceId}" \
       --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=controller-2")
-
 ```
 
 ### Verification
