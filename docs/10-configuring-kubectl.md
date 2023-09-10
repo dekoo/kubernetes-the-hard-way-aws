@@ -54,16 +54,16 @@ Server Version: version.Info{Major:"1", Minor:"21", GitVersion:"v1.21.0", GitCom
 List the nodes in the remote Kubernetes cluster:
 
 ```
-kubectl get nodes
+kubectl get nodes --kubeconfig=remote-admin.kubeconfig 
 ```
 
 > output
 
 ```
 NAME                          STATUS   ROLES    AGE   VERSION
-ip-10-240-0-21.ec2.internal   Ready    <none>   25m   v1.21.0
-ip-10-240-1-21.ec2.internal   Ready    <none>   25m   v1.21.0
-ip-10-240-2-21.ec2.internal   Ready    <none>   18m   v1.21.0
+ip-10-240-0-21.ec2.internal   Ready    <none>   33m   v1.28.1
+ip-10-240-1-21.ec2.internal   Ready    <none>   33m   v1.28.1
+ip-10-240-2-21.ec2.internal   Ready    <none>   33m   v1.28.1
 ```
 
 Next: [Provisioning Pod Network Routes](11-pod-network-routes.md)
