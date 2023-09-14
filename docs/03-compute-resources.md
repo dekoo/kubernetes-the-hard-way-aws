@@ -258,18 +258,24 @@ done
 List the compute instances in your default region:
 
 ```
-aws ec2 describe-instances --output text --query "Reservations[*].Instances[*].{ID:InstanceId,Name:Tags[?Key=='Name'].Value | [0],PublicIP:PublicIpAddress,Status:State.Name}"
+aws ec2 describe-instances --output table --query "Reservations[*].Instances[*].{ID:InstanceId,Name:Tags[?Key=='Name'].Value | [0],PublicIP:PublicIpAddress,Status:State.Name}"
 ```
 
 > output
 
 ```
-i-09412985db7c72158		controller-2		54.90.196.141		running
-i-0381ccbd1b41ba93f		worker-2		23.20.192.99		running
-i-0f9b26279f0a9ce11		worker-1		44.212.25.155		running
-i-095ad38d5362b6273		controller-1		54.224.51.211		running
-i-05de50d771f987162		worker-0		3.87.115.200		running
-i-01b852f450b8ff73e		controller-0		3.93.0.159		running
+----------------------------------------------------------------------
+|                          DescribeInstances                         |
++----------------------+---------------+------------------+----------+
+|          ID          |     Name      |    PublicIP      | Status   |
++----------------------+---------------+------------------+----------+
+|  i-0676d880e678b576a |  worker-2     |  54.89.69.248    |  running |
+|  i-0419c7819611fffdb |  controller-1 |  18.234.131.148  |  running |
+|  i-0a7b2b6b4d84681f8 |  worker-1     |  54.227.173.253  |  running |
+|  i-062946620838e313e |  worker-0     |  3.90.67.246     |  running |
+|  i-052374bd707ab41d6 |  controller-0 |  54.86.164.153   |  running |
+|  i-08cc74371f5446072 |  controller-2 |  35.175.240.106  |  running |
++----------------------+---------------+------------------+----------+
 ```
 
 ## SSH Access
