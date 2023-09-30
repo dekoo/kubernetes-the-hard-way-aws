@@ -241,7 +241,7 @@ Create three compute instances which will host the Kubernetes worker nodes:
 ```
 for i in 0 1 2; do
   aws ec2 run-instances --image-id ami-0f34c5ae932e6f0e4 \
-    --instance-type t2.micro \
+    --instance-type t2.medium \
     --key-name kubernetes-the-hard-way-key \
     --subnet-id $(aws ec2 describe-subnets --filters "Name=tag:Name,Values=kubernetes-subnet-${i}" --query "Subnets[*].SubnetId" --output text) \
     --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=worker-${i}},{Key=Project,Value=kubernetes-the-hard-way}]" \
