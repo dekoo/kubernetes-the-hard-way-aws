@@ -8,7 +8,7 @@ Deploy the `coredns` cluster add-on using `helm`
 
 ```
 helm repo add coredns https://coredns.github.io/helm
-helm --namespace=kube-system install coredns coredns/coredns
+helm --namespace=kube-system install coredns coredns/coredns --set service.clusterIP='10.32.0.10'
 ```
 
 > output
