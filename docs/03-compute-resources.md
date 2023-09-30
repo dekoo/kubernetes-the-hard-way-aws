@@ -258,24 +258,24 @@ done
 List the compute instances in your default region:
 
 ```
-aws ec2 describe-instances --output table --query "Reservations[*].Instances[*].{ID:InstanceId,Name:Tags[?Key=='Name'].Value | [0],PublicIP:PublicIpAddress,Status:State.Name}"
+aws ec2 describe-instances --output table --query "Reservations[*].Instances[*].{ID:InstanceId,Name:Tags[?Key=='Name'].Value | [0],PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress,Status:State.Name}"
 ```
 
 > output
 
 ```
-----------------------------------------------------------------------
-|                          DescribeInstances                         |
-+----------------------+---------------+------------------+----------+
-|          ID          |     Name      |    PublicIP      | Status   |
-+----------------------+---------------+------------------+----------+
-|  i-0676d880e678b576a |  worker-2     |  54.89.69.248    |  running |
-|  i-0419c7819611fffdb |  controller-1 |  18.234.131.148  |  running |
-|  i-0a7b2b6b4d84681f8 |  worker-1     |  54.227.173.253  |  running |
-|  i-062946620838e313e |  worker-0     |  3.90.67.246     |  running |
-|  i-052374bd707ab41d6 |  controller-0 |  54.86.164.153   |  running |
-|  i-08cc74371f5446072 |  controller-2 |  35.175.240.106  |  running |
-+----------------------+---------------+------------------+----------+
+-------------------------------------------------------------------------------------
+|                                 DescribeInstances                                 |
++----------------------+---------------+--------------+-----------------+-----------+
+|          ID          |     Name      |  PrivateIP   |    PublicIP     |  Status   |
++----------------------+---------------+--------------+-----------------+-----------+
+|  i-0bbef0f8e80e8d5e1 |  worker-2     |  10.240.2.21 |  52.90.124.94   |  running  |
+|  i-02324df4715e710a4 |  worker-1     |  10.240.1.21 |  3.91.234.180   |  running  |
+|  i-04222701850127295 |  controller-1 |  10.240.1.11 |  52.201.245.168 |  running  |
+|  i-0d610d55344cf7a09 |  worker-0     |  10.240.0.21 |  3.89.187.106   |  running  |
+|  i-01e97df250fe43a10 |  controller-0 |  10.240.0.11 |  54.210.252.47  |  running  |
+|  i-08eef4b1d65ae729e |  controller-2 |  10.240.2.11 |  18.206.191.182 |  running  |
++----------------------+---------------+--------------+-----------------+-----------+
 ```
 
 ## SSH Access
@@ -285,7 +285,7 @@ SSH will be used to configure the controller and worker instances.
 Test SSH access to the `worker-2` compute instances:
 
 ```
-ssh -i "kubernetes-the-hard-way-key.pem" ec2-user@23.20.192.99
+ssh -i "kubernetes-the-hard-way-key.pem" ec2-user@52.90.124.94
 ```
 
 Next: [Provisioning a CA and Generating TLS Certificates](04-certificate-authority.md)
