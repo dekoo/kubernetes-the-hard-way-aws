@@ -152,13 +152,17 @@ sudo mkdir -p /etc/containerd/
 
 ```
 cat << EOF | sudo tee /etc/containerd/config.toml
-[plugins]
-  [plugins.cri.containerd]
+version = 2
+
+[plugins."io.containerd.grpc.v1.cri"]
+  [plugins."io.containerd.grpc.v1.cri".containerd]
     snapshotter = "overlayfs"
-    [plugins.cri.containerd.default_runtime]
-      runtime_type = "io.containerd.runtime.v1.linux"
-      runtime_engine = "/usr/local/bin/runc"
-      runtime_root = ""
+    default_runtime_name = "runc"
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+        runtime_type = "io.containerd.runc.v2"
+  [plugins."io.containerd.grpc.v1.cri".cni]
+    conf_dir = "/etc/cni/net.d"
 EOF
 ```
 
