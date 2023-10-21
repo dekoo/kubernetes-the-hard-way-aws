@@ -16,8 +16,9 @@ kubectl create secret generic kubernetes-the-hard-way \
 Print a hexdump of the `kubernetes-the-hard-way` secret stored in etcd:
 
 ```
-gcloud compute ssh controller-0 \
-  --command "sudo ETCDCTL_API=3 etcdctl get \
+ssh -i "kubernetes-the-hard-way-key.pem" ec2-user@$(aws ec2 describe-instances --output text \
+      --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=controller-0") "sudo ETCDCTL_API=3 etcdctl get \
   --endpoints=https://127.0.0.1:2379 \
   --cacert=/etc/etcd/ca.pem \
   --cert=/etc/etcd/kubernetes.pem \
@@ -160,7 +161,7 @@ kubectl exec -ti $POD_NAME -- nginx -v
 > output
 
 ```
-nginx version: nginx/1.19.10
+nginx version: nginx/1.25.2
 ```
 
 ## Services
@@ -185,17 +186,21 @@ NODE_PORT=$(kubectl get svc nginx \
 Create a firewall rule that allows remote access to the `nginx` node port:
 
 ```
-gcloud compute firewall-rules create kubernetes-the-hard-way-allow-nginx-service \
-  --allow=tcp:${NODE_PORT} \
-  --network kubernetes-the-hard-way
+aws ec2 authorize-security-group-ingress \
+  --group-id $(aws ec2 describe-security-groups \
+    --filters "Name=vpc-id,Values=$(aws ec2 describe-vpcs \
+       --filters "Name=tag:Name,Values=kubernetes-the-hard-way-vpc" --query "Vpcs[*].VpcId" --output text)" \
+    --query "SecurityGroups[*].GroupId" --output text) \
+  --protocol tcp --port ${NODE_PORT} --cidr 0.0.0.0/0 --output text
 ```
 
 Retrieve the external IP address of a worker instance:
 
 ```
-EXTERNAL_IP=$(gcloud compute instances describe worker-0 \
-  --format 'value(networkInterfaces[0].accessConfigs[0].natIP)')
+EXTERNAL_IP=$(aws ec2 describe-instances --output text --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=worker-1")
 ```
+
+> Find the node where the POD is running by executing `kubectl get pods -l app=nginx -o wide`
 
 Make an HTTP request using the external IP address and the `nginx` node port:
 
