@@ -55,6 +55,15 @@ sudo swapoff -a
 
 > To ensure swap remains off after reboot consult your Linux distro documentation.
 
+### Enable Bridge Netfilter
+
+In order to preventively solve the issue with DNS lookups are intermittently failing, because responses are coming from an unexpected IP we should enable [bridge netfilter](https://ebtables.netfilter.org/documentation/bridge-nf.html).
+More details on that issue, how it is investigated and how kubernetes networking works in general can be found in this [article](https://engineerbetter.com/blog/debugging-kubernetes-networking/)
+
+```
+sudo modprobe br_netfilter
+```
+
 ### Download and Install Worker Binaries
 
 ```
