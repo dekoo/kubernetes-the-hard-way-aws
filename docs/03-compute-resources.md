@@ -197,7 +197,7 @@ LBuJesSE7YOym3AJ/Hu7gpYePzgF5qCgiP+j48N2HsBVbbltx2cNUJxZBH4zFZge
 -----END RSA PRIVATE KEY-----
 ```
 
-Adjust permissions on the file: 
+Adjust permissions on the file to make it read-writable only for you as SSH demands: 
 
 ```
 chmod 400 kubernetes-the-hard-way-key.pem
