@@ -84,7 +84,7 @@ kubectl exec -ti $POD_NAME -- nslookup kubernetes
 
 ```
 Server:    10.32.0.10
-Address 1: 10.32.0.10 kube-dns.kube-system.svc.cluster.local
+Address 1: 10.32.0.10 coredns-coredns.kube-system.svc.cluster.local
 
 Name:      kubernetes
 Address 1: 10.32.0.1 kubernetes.default.svc.cluster.local
