@@ -68,7 +68,7 @@ Delete the `kubernetes-the-hard-way` firewall rules:
     --protocol tcp --port ${NODE_PORT} --cidr 0.0.0.0/0 --output text
 }
 ```
->>> `NODE_PORT` is the one we set during [smoke test](https://github.com/dekoo/kubernetes-the-hard-way-aws/blob/master/docs/13-smoke-test.md#services)
+> `NODE_PORT` is the one we set during [smoke test](https://github.com/dekoo/kubernetes-the-hard-way-aws/blob/master/docs/13-smoke-test.md#services)
 
 Delete the `kubernetes-the-hard-way` network VPC and related services:
 
