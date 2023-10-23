@@ -315,6 +315,38 @@ subjects:
 EOF
 ```
 
+## Limit Range 
+
+The commands in this section will effect the entire cluster and only need to be run once from one of the controller nodes.
+
+```
+ssh -i "kubernetes-the-hard-way-key.pem" ec2-user@$(aws ec2 describe-instances --output text \
+      --query "Reservations[*].Instances[*].{PublicIP:PublicIpAddress}" \
+      --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values=controller-0")
+```
+
+Lets set [Limit Range](https://kubernetes.io/docs/concepts/policy/limit-range/) that will drive `cpu` and `memory` limits for the containers we will run in the next labs. If no limits are set neither as a Limit Range for the namespace, nor on a container [level](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/), then containers will consume as much as available on the Node, that may cause crashes as it was observed during tests.
+
+```
+cat > resource-constraints.yaml <<EOF
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: cpu-resource-constraint
+spec:
+  limits:
+  - default:
+      cpu: 300m
+      memory: 256Mi
+    max:
+      cpu: 500m
+      memory: 512Mi
+    type: Container
+EOF
+
+kubectl apply -f resource-constraints.yaml
+```
+
 ## The Kubernetes Frontend Load Balancer
 
 In this section you will complete provisioning of an external load balancer to front the Kubernetes API Servers. 
