@@ -2,6 +2,8 @@
 
 In this lab you will deploy the [DNS add-on](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) which provides DNS based service discovery, backed by [CoreDNS](https://coredns.io/), to applications running inside the Kubernetes cluster.
 
+<img alt="Core DNS" style="border-width:0" src="https://github.com/dekoo/kubernetes-the-hard-way-aws/blob/master/schemas/kubernetes-the-hard-way-aws-core-dns.png?raw=true" />
+
 ## The DNS Cluster Add-on
 
 Deploy the `coredns` cluster add-on using `helm`
