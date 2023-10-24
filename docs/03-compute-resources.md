@@ -40,7 +40,7 @@ done
 
 ### Firewall Rules
 
-A [security group](https://docs.aws.amazon.com/vpc/latest/userguide/security-groups.html) acts as a firewall that controls the traffic allowed to and from the resources in your virtual private cloud (VPC). You can choose the ports and protocols to allow for inbound traffic and for outbound traffic.
+A [security group](https://docs.aws.amazon.com/vpc/latest/userguide/security-groups.html) acts as a stateless firewall that controls the traffic allowed to and from the resources in your virtual private cloud (VPC). Associated with EC2 instances. You can choose the ports and protocols to allow for inbound traffic and for outbound traffic.
 
 Security groups created by default with VPC allows inbound traffic only within given VPC. Add rules that would allow SSH, ICMP and HTTPS inbound traffic from outside world:
 
@@ -69,7 +69,7 @@ aws ec2 authorize-security-group-ingress \
   --protocol icmp --port -1 --cidr 0.0.0.0/0 --output text
 ```
 
-Network ACLs by default allow all traffic, hence we leave them as is. 
+[Network ACLs](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html#nacl-basics) is another stateful way to control traffic to subnets. By default allow all traffic, hence we leave them as is. 
 
 ### Internet Gateway
 In order to allow access to our compute resources within VPC from local machine via SSH we need to create Internet Gateway and attach it to our VPC:
