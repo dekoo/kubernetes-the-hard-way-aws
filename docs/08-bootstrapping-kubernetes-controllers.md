@@ -2,6 +2,10 @@
 
 In this lab you will bootstrap the Kubernetes control plane across three compute instances and configure it for high availability. You will also add those instances to the target group of an external load balancer that exposes the Kubernetes API Servers to remote clients. The following components will be installed on each node: Kubernetes API Server, Scheduler, and Controller Manager.
 
+Here is what we will have as a result of this lab:
+
+<img alt="Control plane" style="border-width:0" src="https://github.com/dekoo/kubernetes-the-hard-way-aws/blob/master/schemas/kubernetes-the-hard-way-aws-control-plane.png?raw=true" />
+
 ## Prerequisites
 
 The commands in this lab must be run on each controller instance: `controller-0`, `controller-1`, and `controller-2`. Login to each controller instance using the `ssh` command. IP address can be retrieved dynamically using `aws cli`. Example:
