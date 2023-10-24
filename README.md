@@ -2,13 +2,13 @@
 
 This tutorial walks you through setting up Kubernetes the hard way. This guide is not for people looking for a fully automated command to bring up a Kubernetes cluster. If that's you then check out [Amazon Elastic Kubernetes Service](https://aws.amazon.com/eks/), or the [Getting Started Guides](https://kubernetes.io/docs/setup).
 
-Kubernetes The Hard Way is optimized for learning, which means taking the long route to ensure you understand each task required to bootstrap a Kubernetes cluster.
-
-> The results of this tutorial should not be viewed as production ready, and may receive limited support from the community, but don't let that stop you from learning!
-
 As a result following deployment schema will be implemented:
 
 <img alt="Target deployment schema" style="border-width:0" src="https://github.com/dekoo/kubernetes-the-hard-way-aws/blob/master/schemas/kubernetes-the-hard-way-aws-target.png?raw=true" />
+
+Kubernetes The Hard Way is optimized for learning, which means taking the long route to ensure you understand each task required to bootstrap a Kubernetes cluster.
+
+> The results of this tutorial should not be viewed as production ready, and may receive limited support from the community, but don't let that stop you from learning!
 
 ## Copyright
 
