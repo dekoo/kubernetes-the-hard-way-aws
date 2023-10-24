@@ -348,7 +348,7 @@ spec:
     type: Container
 EOF
 
-kubectl apply -f resource-constraints.yaml
+kubectl apply -f resource-constraints.yaml --kubeconfig admin.kubeconfig
 ```
 
 ## The Kubernetes Frontend Load Balancer
