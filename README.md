@@ -6,6 +6,10 @@ Kubernetes The Hard Way is optimized for learning, which means taking the long r
 
 > The results of this tutorial should not be viewed as production ready, and may receive limited support from the community, but don't let that stop you from learning!
 
+As a result following deployment schema will be implemented:
+
+<img alt="Target deployment schema" style="border-width:0" src="https://github.com/dekoo/kubernetes-the-hard-way-aws/blob/master/schemas/kubernetes-the-hard-way-aws-target.png?raw=true" />
+
 ## Copyright
 
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
