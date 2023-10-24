@@ -40,8 +40,9 @@ done
 
 ### Firewall Rules
 
-Security Groups created by default with VPC allows Inbound traffic only within given VPC. 
-Add rules that would allow SSH, ICMP and HTTPS inbound traffic from outside world:
+A [security group](https://docs.aws.amazon.com/vpc/latest/userguide/security-groups.html) acts as a firewall that controls the traffic allowed to and from the resources in your virtual private cloud (VPC). You can choose the ports and protocols to allow for inbound traffic and for outbound traffic.
+
+Security groups created by default with VPC allows inbound traffic only within given VPC. Add rules that would allow SSH, ICMP and HTTPS inbound traffic from outside world:
 
 ```
 aws ec2 authorize-security-group-ingress \
